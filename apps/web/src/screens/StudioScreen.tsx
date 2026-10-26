@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, BookOpen, ChevronDown, Clapperboard, Clock3,
   FileText, GitBranch, Layers, MoreHorizontal, Plus, Save, Search, Trash2,
@@ -9,7 +9,10 @@ import type { Graph, Project, Scene, Script } from '../api';
 import { useAuth } from '../auth';
 import { DashboardFrame, formatDate, FriendlyError, UserIndicator } from '../components/Chrome';
 import { CreateModal, EmptyState } from '../components/Modal';
-import { ScreenplayEditor } from '../components/ScreenplayEditor';
+const ScreenplayEditor = lazy(async () => {
+  const module = await import('../components/ScreenplayEditor');
+  return { default: module.ScreenplayEditor };
+});
 
 export function StudioScreen() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -253,8 +256,10 @@ export function StudioScreen() {
                   <textarea className="scene-synopsis" id="scene-description" value={draftSynopsis} maxLength={2000}
                     placeholder="Что происходит в этой сцене? Опишите действие, настроение и важные детали…"
                     onChange={e=>setDraftSynopsis(e.target.value)}/>
-                  {token && user && <ScreenplayEditor key={currentScene.id} sceneId={currentScene.id}
-                    token={token} displayName={user.displayName} userId={user.id}/>}
+                  {token && user && <Suspense fallback={<p role="status" className="editor-explainer">Загружаем редактор сцены…</p>}>
+                    <ScreenplayEditor key={currentScene.id} sceneId={currentScene.id}
+                      token={token} displayName={user.displayName} userId={user.id}/>
+                  </Suspense>}
                   <p className="editor-explainer">Текст сценария синхронизируется отдельно от синопсиса и сохраняется через Yjs / PostgreSQL.</p>
                 </div>
                 <div className="scene-actions">
