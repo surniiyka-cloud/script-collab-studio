@@ -19,6 +19,27 @@ export type Scene = {
 export type GraphNode = { id: string; title: string; kind: string; sceneId: string | null };
 export type GraphEdge = { id: string; sourceNodeId: string; targetNodeId: string; kind: string };
 export type Graph = { nodes: GraphNode[]; edges: GraphEdge[] };
+
+export type ImportBlock = { kind: 'heading'|'action'|'character'|'dialogue'|'parenthetical'|'transition'; text:string; sourceLine:number };
+export type ImportPreview = {
+ digest:string; length:number; characters:string[]; warnings:string[];
+ scenes:Array<{title:string;sourceLineStart:number;blocks:ImportBlock[]}>;
+};
+export type ImportCommit = {scriptId:string;scenes:Array<{id:string;title:string}>;characters:string[]};
+export type ShotDraft = {
+ title:string;description:string;shotType:'WIDE'|'MEDIUM'|'CLOSE_UP'|'OTHER';
+ durationMs:number;sourceLine:number|null;soundCue:string;musicCue:string;
+};
+export type Asset = {id:string;filename:string;mimeType:string;kind:'IMAGE'|'AUDIO';sizeBytes:string};
+export type ProductionNode = {
+ id:string;title:string;description:string|null;kind:string;sceneId:string|null;
+ shotType:string|null;durationMs:number|null;metadata:unknown;
+ mediaLinks?:Array<{id:string;asset:Asset}>;
+};
+export type FilmTimeline = {script:{id:string;title:string};scenes:Array<{
+ id:string;title:string;shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;metadata:unknown}>;
+}>};
+
 export type Session = { user: User; accessToken: string };
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
@@ -81,4 +102,34 @@ export const api = {
     request<{ deleted: boolean }>('/scenes/' + encodeURIComponent(sceneId), 'DELETE', token),
   graph: (token: string, projectId: string, signal?: AbortSignal) =>
     request<Graph>('/projects/' + encodeURIComponent(projectId) + '/graph', 'GET', token, undefined, signal),
+
+  previewImport: (token:string, projectId:string, text:string) =>
+    request<ImportPreview>('/projects/'+encodeURIComponent(projectId)+'/production/import/preview','POST',token,{text}),
+  commitImport: (token:string, projectId:string, input:{title:string;text:string;digest:string}) =>
+    request<ImportCommit>('/projects/'+encodeURIComponent(projectId)+'/production/import/commit','POST',token,input),
+  characters: (token:string,projectId:string) =>
+    request<ProductionNode[]>('/projects/'+encodeURIComponent(projectId)+'/production/characters','GET',token),
+  createCharacter: (token:string,projectId:string,name:string) =>
+    request<ProductionNode>('/projects/'+encodeURIComponent(projectId)+'/production/characters','POST',token,{name}),
+  shotDraft: (token:string,sceneId:string) =>
+    request<{sceneId:string;shots:ShotDraft[];source:string;note:string}>('/scenes/'+encodeURIComponent(sceneId)+'/production/shot-draft','GET',token),
+  approvedShots: (token:string,sceneId:string) =>
+    request<ProductionNode[]>('/scenes/'+encodeURIComponent(sceneId)+'/production/shots','GET',token),
+  approveShots: (token:string,sceneId:string,shots:ShotDraft[]) =>
+    request<ProductionNode[]>('/scenes/'+encodeURIComponent(sceneId)+'/production/shots/approve','POST',token,{shots}),
+  timeline: (token:string,projectId:string,scriptId:string) =>
+    request<FilmTimeline>('/projects/'+encodeURIComponent(projectId)+'/production/timeline?scriptId='+encodeURIComponent(scriptId),'GET',token),
+  uploadMedia: async (token:string,projectId:string,nodeId:string,file:File):Promise<Asset> => {
+    const reply=await fetch('/api/v1/projects/'+encodeURIComponent(projectId)+'/production/nodes/'+encodeURIComponent(nodeId)+'/media',{
+      method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':file.type,'x-file-name':encodeURIComponent(file.name)},body:file,
+    });
+    const json=await reply.json() as {data?:Asset;error?:{message:string}};
+    if(!reply.ok||!json.data)throw new ApiError(reply.status,'MEDIA_UPLOAD_FAILED',json.error?.message||'Не удалось загрузить файл.');
+    return json.data;
+  },
+  mediaBlob: async (token:string,mediaId:string):Promise<Blob> => {
+    const reply=await fetch('/api/v1/media/'+encodeURIComponent(mediaId)+'/file',{headers:{Authorization:'Bearer '+token}});
+    if(!reply.ok)throw new ApiError(reply.status,'MEDIA_READ_FAILED','Не удалось получить файл.');
+    return reply.blob();
+  },
 };
