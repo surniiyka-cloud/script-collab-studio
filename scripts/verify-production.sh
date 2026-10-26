@@ -49,4 +49,4 @@ for i in $(seq 1 45); do
 done
 
 pnpm --filter @studio/api test:production
-printf '\nPASS: Production importer, storyboard, Yjs, timeline and private MinIO media smoke.\n'
+printf '\nPASS: Production importer, storyboard, Yjs, timeline and private S3 media smoke.\n'
