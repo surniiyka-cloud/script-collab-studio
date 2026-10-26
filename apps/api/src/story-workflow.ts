@@ -57,7 +57,7 @@ function analyse(blocks:Block[]) {
    speaker=null;
   }else if(block.kind==='heading'||block.kind==='transition')speaker=null;
  }
- return {dialogue,characters:[...characters],actions:actions.slice(0,30)};
+ return {dialogue,characters:[...characters],actions};
 }
 export function registerStoryWorkflowRoutes(app:FastifyInstance,access:(req:FastifyRequest,id:string,write?:boolean)=>Promise<unknown>){
  app.get('/api/v1/projects/:projectId/workflow/story',async req=>{
@@ -86,7 +86,7 @@ export function registerStoryWorkflowRoutes(app:FastifyInstance,access:(req:Fast
      suggestedLocation:workflowMeta(sceneNode?.metadata).locationHint??
       locationFromHeading(scene.title),timecode:workflowMeta(sceneNode?.metadata).timecode??null,
      timeOfDay:workflowMeta(sceneNode?.metadata).timeOfDay??null,blocks,
-     actionDescription:extracted.actions.join('\n').slice(0,3500),
+     actionDescription:extracted.actions.join('\n'),
      dialogues:extracted.dialogue,characters:extracted.characters,shots};
   });
   const byKind=(kind:'CHARACTER'|'LOCATION')=>allNodes.filter(n=>n.kind===kind)
