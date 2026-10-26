@@ -3,7 +3,7 @@ export type Kind = 'heading'|'action'|'character'|'dialogue'|'parenthetical'|'tr
 export type Block = {kind:Kind;text:string;sourceLine:number};
 export type ParsedScene = {title:string;sourceLineStart:number;blocks:Block[]};
 export type Preview = {digest:string;scenes:ParsedScene[];characters:string[];warnings:string[];length:number};
-const heading=/^(?:INT\.?|EXT\.?|INT\/EXT|ИНТ\.?|НАТ\.?|ИНТ\/НАТ|СЦЕНА\s*\d+|SCENE\s*\d+)\s*[. :—-]/iu;
+const heading=/^(?:(?:INT\/EXT|ИНТ\/НАТ|INT|EXT|ИНТ|НАТ)\.?\s+|(?:СЦЕНА|SCENE)\s*\d+(?=\s|[:.―—-]))/iu;
 const char=/^[\p{Lu}\p{N} ._()\-Ё]{2,55}$/u;
 export function parseScreenplay(input:string):Preview {
  const source=input.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
