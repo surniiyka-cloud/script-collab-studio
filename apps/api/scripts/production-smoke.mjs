@@ -41,6 +41,21 @@ try{
  assert.equal(accepted.length,drafted.shots.length);
  const timeline=await call('/projects/'+projectId+'/production/timeline?scriptId='+imported.scriptId);
  assert.equal(timeline.scenes[0].shots.length,drafted.shots.length);
+ console.log('3b/6 New wizard scene breakdown includes actual speakers, original actions and discovered locations');
+ let board=await call('/projects/'+projectId+'/workflow/story?scriptId='+imported.scriptId);
+ assert.equal(board.scenes.length,2);
+ assert.equal(board.scenes[0].dialogues[0].speaker,'СЕРГЕЙ');
+ assert.equal(board.scenes[0].dialogues[0].text,'Доброе утро!');
+ assert.equal(board.scenes[1].actionDescription,'Вода спокойная.');
+ assert.equal(board.scenes[0].shots.length,drafted.shots.length);
+ const office=board.locations.find(location=>location.title==='ОФИС');
+ const lake=board.locations.find(location=>location.title==='ОЗЕРО');
+ assert.ok(office && lake,'Both locations should be discovered automatically');
+ assert.equal(board.scenes[0].locationId,office.id);
+ await call('/scenes/'+first+'/workflow/location','PUT',{locationId:lake.id});
+ board=await call('/projects/'+projectId+'/workflow/story?scriptId='+imported.scriptId);
+ assert.equal(board.scenes[0].locationId,lake.id);
+ await call('/scenes/'+first+'/workflow/location','PUT',{locationId:office.id});
  console.log('4/6 Keep imported characters in graph');
  const characters=await call('/projects/'+projectId+'/production/characters');
  const character=characters.find(n=>n.title==='СЕРГЕЙ');
@@ -72,6 +87,16 @@ try{
  const after=await call('/projects/'+projectId+'/production/characters');
  const updated=after.find(n=>n.id===character.id);
  assert.ok(updated.mediaLinks.some(link=>link.asset.id===asset.id));
+ console.log('6b/6 Upload location photo, ensure correct location/media in visual story');
+ const locationPhoto=await fetch(url+'/api/v1/projects/'+projectId+'/production/nodes/'+office.id+'/media',{
+  method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'image/png','x-file-name':'office.png'},body:png,
+ });
+ const uploadedLocation=await locationPhoto.json();
+ assert.equal(locationPhoto.status,201,JSON.stringify(uploadedLocation));
+ const visual=await call('/projects/'+projectId+'/workflow/story?scriptId='+imported.scriptId);
+ assert.ok(visual.locations.find(loc=>loc.id===office.id).media.some(m=>m.id===uploadedLocation.data.id));
+ assert.ok(visual.characters.find(person=>person.id===character.id).media.some(m=>m.id===asset.id));
+
  console.log('PASS: script import, Yjs, shot approval, timeline, named character and private MinIO file.');
 } finally{
  if(projectId){try{await db.project.delete({where:{id:projectId}});}catch(e){console.warn('Temporary project cleanup failed',String(e));}}
