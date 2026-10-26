@@ -29,7 +29,8 @@
     "jose": "6.1.0",
     "pg": "8.16.3",
     "yjs": "13.6.27",
-    "zod": "4.1.12"
+    "zod": "4.1.12",
+    "@aws-sdk/client-s3": "3.1147.0"
   },
   "devDependencies": {
     "@types/node": "22.18.12",
