@@ -44,17 +44,17 @@ export function ProjectsScreen() {
     <main className="page-container project-page">
       <div className="page-heading">
         <div><div className="eyebrow eyebrow-light"><span className="status-dot"/> ТВОРЧЕСКАЯ МАСТЕРСКАЯ</div>
-          <h1>Мои проекты<span className="heading-period">.</span></h1>
-          <p>Каждая большая история начинается с одного проекта.</p></div>
-        <button className="button button-primary" onClick={()=>setShowCreate(true)}><Plus size={19}/> Новый проект</button>
+          <h1>Мои истории<span className="heading-period">.</span></h1>
+          <p>Загрузи готовый сценарий, назначь персонажей и локации, собери кадры и увидь историю целиком.</p></div>
+        <button className="button button-primary" onClick={()=>setShowCreate(true)}><Plus size={19}/> Начать историю</button>
       </div>
       <div className="work-banner">
         <span className="work-banner-icon"><Sparkles size={22}/></span>
-        <div><strong>Всё начинается здесь</strong><p>Соберите сценарий, сцены и идеи в одном месте. У каждого проекта — своя история.</p></div>
+        <div><strong>Сценарий → персонажи → локации → кадры → история</strong><p>Теперь вместо отдельных разрозненных редакторов — один понятный маршрут из пяти шагов. Текст сценария остаётся авторским.</p></div>
         <Film className="banner-film" size={112} strokeWidth={1}/>
       </div>
       <div className="content-toolbar">
-        <div className="section-title"><LayoutGrid size={18}/><h2>Все проекты</h2><span className="count-pill">{projects.length}</span></div>
+        <div className="section-title"><LayoutGrid size={18}/><h2>Все истории</h2><span className="count-pill">{projects.length}</span></div>
         <label className="search-box"><Search size={18}/><span className="sr-only">Поиск проектов</span>
           <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск по проектам…"/></label>
       </div>
