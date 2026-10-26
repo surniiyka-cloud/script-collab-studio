@@ -22,11 +22,11 @@ export function createCollabServer() {
     address: env.HOST,
     debounce: 1000,
     maxDebounce: 5000,
-    async onAuthenticate({ documentName, token, connection }) {
+    async onAuthenticate({ documentName, token, connectionConfig }) {
       const userId = await readAccessToken(token);
       const projectId = await collabProject(documentName);
       const role = await membership(userId, projectId);
-      connection.readOnly = role === 'VIEWER';
+      connectionConfig.readOnly = role === 'VIEWER';
       return { userId, projectId, role };
     },
     extensions: [new Database({
