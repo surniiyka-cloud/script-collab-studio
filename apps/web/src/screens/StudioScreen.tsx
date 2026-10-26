@@ -203,7 +203,7 @@ export function StudioScreen() {
                   return <button key={scene.id} className={'scene-list-item ' + (selectedScene === scene.id ? 'active' : '')}
                     onClick={()=>{
                       if (dirty && !window.confirm('Есть несохранённые изменения. Перейти к другой сцене?')) return;
-                      setSelectedScene(scene.id); setView('script');
+                      setSelectedScene(scene.id); if (view==='graph') setView('script');
                     }}>
                     <span className="scene-num">{String(n+1).padStart(2,'0')}</span>
                     <span className="scene-list-copy"><strong>{scene.title}</strong><small>{scene.synopsis?.trim() || 'Описание не добавлено'}</small></span>
