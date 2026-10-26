@@ -316,6 +316,16 @@ export function StoryWizardScreen(){
          <p>{scene.blocks.filter(b=>b.kind==='action'&&b.text.trim()).slice(0,2).map(b=>b.text).join(' ').slice(0,240)||'Описание места отсутствует в сценарии'}</p>
          {!!dialogues(scene.blocks).length&&<small className="wizard-dialogue-count">РЕПЛИКИ: {dialogues(scene.blocks).length} · ГОВОРЯТ: {[...new Set(dialogues(scene.blocks).map(d=>d.speaker))].join(', ')}</small>}
          {dialogues(scene.blocks).slice(0,3).map((line,j)=><div key={j} className="wizard-dialogue-mini"><b>{line.speaker}</b> {line.text}</div>)}
+         <details className="wizard-scene-details">
+          <summary>Весь разбор сцены: действия и реплики</summary>
+          <div className="wizard-scene-details-content">
+           {scene.blocks.filter(block=>block.text.trim()&&block.kind!=='heading'&&block.kind!=='character').map((block,j)=>
+            <p key={j} className={block.kind==='dialogue'?'wizard-line-dialogue':block.kind==='transition'?'wizard-line-transition':'wizard-line-action'}>
+             {block.kind==='dialogue'&&block.speaker?<><strong>{block.speaker}</strong><span>{block.dialogueText??block.text}</span></>:
+              block.text}
+            </p>)}
+          </div>
+         </details>
         </article>)}</div>
         <button className="wizard-primary wizard-full" disabled={busy||!importTitle.trim()}
          onClick={()=>void commit()}>Подтвердить разбор и перейти к персонажам <ArrowRight size={18}/></button>
