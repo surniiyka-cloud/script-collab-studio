@@ -25,7 +25,9 @@
     "@tiptap/extension-collaboration": "3.31.4",
     "@tiptap/extension-collaboration-caret": "3.31.4",
     "@tiptap/extension-placeholder": "3.31.4",
-    "yjs": "13.6.27"
+    "yjs": "13.6.27",
+    "mammoth": "1.12.2",
+    "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "5.0.4",

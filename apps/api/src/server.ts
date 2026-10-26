@@ -7,6 +7,10 @@ import { createsCycle } from './graph.js';
 import { HttpError, required } from './errors.js';
 import { edgeScope, membership, nodeScope, sceneScope, scriptScope } from './policy.js';
 import { FixedWindowLimiter } from './security.js';
+import { registerProductionRoutes } from './production-routes.js';
+import { registerMediaRoutes } from './production-media.js';
+import { registerProductionRenderRoutes } from './production-render.js';
+import { registerImageGenerationRoutes } from './production-image-ai.js';
 
 const id = z.uuid();
 const params = z.object({ projectId: id });
@@ -268,5 +272,9 @@ export function makeApp() {
     await db.edge.delete({ where: { id: edgeId } });
     return asData({ deleted: true });
   });
+  registerProductionRoutes(app,role);
+  registerMediaRoutes(app,role,actor);
+  registerProductionRenderRoutes(app,role);
+  registerImageGenerationRoutes(app,role);
   return app;
 }

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, BookOpen, ChevronDown, Clapperboard, Clock3,
-  FileText, GitBranch, Layers, MoreHorizontal, Plus, Save, Search, Trash2,
+  FileText, Film, GitBranch, Layers, MoreHorizontal, Plus, Save, Search, Trash2,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError, isUnauthorized } from '../api';
@@ -12,6 +12,10 @@ import { CreateModal, EmptyState } from '../components/Modal';
 const ScreenplayEditor = lazy(async () => {
   const module = await import('../components/ScreenplayEditor');
   return { default: module.ScreenplayEditor };
+});
+const ProductionStudio = lazy(async () => {
+  const module = await import('../components/ProductionStudio');
+  return { default: module.ProductionStudio };
 });
 
 export function StudioScreen() {
@@ -30,7 +34,7 @@ export function StudioScreen() {
   const [sceneError, setSceneError] = useState('');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
-  const [view, setView] = useState<'script' | 'graph'>('script');
+  const [view, setView] = useState<'script' | 'graph' | 'production'>('script');
   const [graph, setGraph] = useState<Graph | null>(null);
   const [graphError, setGraphError] = useState('');
   const [graphRevision, setGraphRevision] = useState(0);
@@ -169,6 +173,8 @@ export function StudioScreen() {
             role="tab" aria-selected={view === 'script'} onClick={()=>setView('script')}><BookOpen size={17}/> Сценарий</button>
           <button className={view === 'graph' ? 'studio-tab active' : 'studio-tab'}
             role="tab" aria-selected={view === 'graph'} onClick={()=>setView('graph')}><GitBranch size={17}/> Структура <span className="tab-preview">ПРОСМОТР</span></button>
+          <button className={view === 'production' ? 'studio-tab active' : 'studio-tab'}
+            role="tab" aria-selected={view === 'production'} onClick={()=>setView('production')}><Film size={17}/> Производство</button>
           <span className="tabs-fill"/>
           <span className="tabs-context"><Layers size={15}/> Сцены связаны с графом проекта</span>
         </div>
@@ -197,7 +203,7 @@ export function StudioScreen() {
                   return <button key={scene.id} className={'scene-list-item ' + (selectedScene === scene.id ? 'active' : '')}
                     onClick={()=>{
                       if (dirty && !window.confirm('Есть несохранённые изменения. Перейти к другой сцене?')) return;
-                      setSelectedScene(scene.id); setView('script');
+                      setSelectedScene(scene.id); if (view==='graph') setView('script');
                     }}>
                     <span className="scene-num">{String(n+1).padStart(2,'0')}</span>
                     <span className="scene-list-copy"><strong>{scene.title}</strong><small>{scene.synopsis?.trim() || 'Описание не добавлено'}</small></span>
@@ -215,8 +221,12 @@ export function StudioScreen() {
             </div>
             <div className="scenes-panel-footer"><span className="tiny-dot"/> Данные сохранены в проекте</div>
           </aside>
-          <section className="workspace-content" aria-label={view === 'script' ? 'Сцена' : 'Структура'}>
-            {view === 'graph' ? <div className="graph-stage">
+          <section className="workspace-content" aria-label={view === 'script' ? 'Сцена' : view === 'production' ? 'Производство' : 'Структура'}>
+            {view === 'production' ? <Suspense fallback={<p className="boot-inline">Загружаем мастерскую производства…</p>}>
+              {token && <ProductionStudio projectId={project.id} token={token} scriptId={activeScript}
+                sceneId={selectedScene} onImported={scriptId=>{setActiveScript(scriptId);setSelectedScene(null);setReload(v=>v+1);}}
+                onShotsChanged={()=>setGraphRevision(v=>v+1)}/>}
+            </Suspense> : view === 'graph' ? <div className="graph-stage">
               <div className="workspace-section-top"><span className="eyebrow eyebrow-light">СТРУКТУРА ПРОЕКТА</span>
                 <button className="button button-subtle button-small" onClick={()=>setGraphRevision(v=>v+1)}>Обновить</button></div>
               <h2>Карта истории</h2>

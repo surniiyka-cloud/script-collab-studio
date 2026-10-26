@@ -15,8 +15,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev --name init",
     "db:deploy": "prisma migrate deploy",
-    "test:logic": "node --experimental-strip-types --test tests/graph.test.ts tests/security.test.ts",
-    "test:collab": "node scripts/collab-smoke.mjs"
+    "test:logic": "node --experimental-strip-types --test tests/graph.test.ts tests/security.test.ts tests/screenplay-import.test.ts",
+    "test:collab": "node scripts/collab-smoke.mjs",
+    "test:production": "node scripts/production-smoke.mjs"
   },
   "dependencies": {
     "@hocuspocus/server": "4.7.1",
@@ -29,7 +30,8 @@
     "jose": "6.1.0",
     "pg": "8.16.3",
     "yjs": "13.6.27",
-    "zod": "4.1.12"
+    "zod": "4.1.12",
+    "@aws-sdk/client-s3": "3.1147.0"
   },
   "devDependencies": {
     "@types/node": "22.18.12",
