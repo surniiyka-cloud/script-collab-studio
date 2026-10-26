@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: studio
+      POSTGRES_PASSWORD: studio_dev_only
+      POSTGRES_DB: studio
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studio -d studio"]
+      interval: 3s
+      retries: 10
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: localstudio
+      MINIO_ROOT_PASSWORD: localstudio_dev_only
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["minio_data:/data"]
+volumes:
+  postgres_data:
+  minio_data:

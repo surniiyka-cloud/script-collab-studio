@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Generated Prisma 7 client (regenerate with pnpm --filter @studio/api db:generate)
+apps/api/src/generated/prisma/
+
+# pnpm is the single package manager for this monorepo
+package-lock.json
