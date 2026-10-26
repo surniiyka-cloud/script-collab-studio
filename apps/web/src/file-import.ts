@@ -11,7 +11,7 @@ export async function readScreenplayFile(file:File):Promise<{text:string;warning
  if(extension==='txt'||extension==='fountain'||extension==='md')
   return {text:await file.text()};
  if(extension==='docx'){
-  const mammoth=await import('mammoth/mammoth.browser');
+  const mammoth=await import('mammoth');
   const extracted=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
   return {text:extracted.value,warning:'Проверьте границы реплик и сцен: форматирование DOCX не переносится автоматически.'};
  }
