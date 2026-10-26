@@ -11,6 +11,7 @@ import { registerProductionRoutes } from './production-routes.js';
 import { registerMediaRoutes } from './production-media.js';
 import { registerProductionRenderRoutes } from './production-render.js';
 import { registerImageGenerationRoutes } from './production-image-ai.js';
+import { registerStoryWorkflowRoutes } from './story-workflow.js';
 
 const id = z.uuid();
 const params = z.object({ projectId: id });
@@ -276,5 +277,6 @@ export function makeApp() {
   registerMediaRoutes(app,role,actor);
   registerProductionRenderRoutes(app,role);
   registerImageGenerationRoutes(app,role);
+  registerStoryWorkflowRoutes(app,role);
   return app;
 }
