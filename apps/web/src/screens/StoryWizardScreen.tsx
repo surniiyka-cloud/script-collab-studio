@@ -207,7 +207,8 @@ export function StoryWizardScreen(){
   await act(async()=>{
    const updated=new Map(story.locations.map(l=>[l.title.toLowerCase(),l.id]));
    for(const name of newDetected){
-    const created=await api.createLocation(token,projectId,name);
+    const context=story.scenes.find(scene=>scene.suggestedLocation?.toLowerCase()===name.toLowerCase());
+    const created=await api.createLocation(token,projectId,name,context?.actionDescription.slice(0,1000));
     updated.set(name.toLowerCase(),created.id);
    }
    for(const scene of story.scenes){
@@ -325,11 +326,8 @@ export function StoryWizardScreen(){
      {!!newDetected.length&&<div className="wizard-suggestion"><MapPin size={18}/>
       <span>Найдены названия, которых ещё нет в библиотеке: <b>{newDetected.join(', ')}</b></span>
       <button className="wizard-light" disabled={busy} onClick={()=>void createSuggested()}>Создать и привязать</button></div>}
-     <div className="wizard-subject-grid">{story?.locations.map(loc=><article key={loc.id} className="wizard-subject">
-      <div className="wizard-subject-header"><MapPin size={18}/><strong>{loc.title}</strong><small>{loc.media.filter(m=>m.kind==='IMAGE').length} фото</small></div>
-      <ImageGallery media={loc.media} token={token!}/>
-      {loc.description&&<p>{loc.description}</p>}
-     </article>)}</div>
+     <div className="wizard-subject-grid">{story?.locations.map(loc=><LocationCard key={loc.id} location={loc} token={token!} busy={busy}
+      onSave={description=>act(async()=>{await api.updateNode(token!,loc.id,{description});await refresh();},'Описание локации сохранено.')}/>)}</div>
      <div className="wizard-add-row"><input value={newLocation} maxLength={200} placeholder="Название новой локации" onChange={e=>setNewLocation(e.target.value)}/>
       <button className="wizard-light" disabled={busy||!newLocation.trim()} onClick={()=>void addSubject('LOCATION',newLocation)}><Plus size={17}/> Добавить место</button></div>
      <BulkPhotos key={'location-'+projectId} title="Фотографии локаций" subjects={story?.locations??[]}
@@ -420,6 +418,26 @@ export function StoryWizardScreen(){
    </>}
   </main>
  </DashboardFrame>;
+}
+function LocationCard({location,token,busy,onSave}:{
+ location:WorkflowSubject;token:string;busy:boolean;onSave:(description:string)=>Promise<void>;
+}){
+ const [editing,setEditing]=useState(false);
+ const [description,setDescription]=useState(location.description??'');
+ useEffect(()=>setDescription(location.description??''),[location.description]);
+ return <article className="wizard-subject wizard-location-card">
+  <div className="wizard-subject-header"><MapPin size={18}/><strong>{location.title}</strong>
+   <small>{location.media.filter(m=>m.kind==='IMAGE').length} фото</small></div>
+  <ImageGallery media={location.media} token={token}/>
+  <span className="wizard-location-caption">ОПИСАНИЕ ЛОКАЦИИ</span>
+  {editing?<div className="wizard-location-edit">
+    <textarea maxLength={5000} rows={4} value={description} onChange={e=>setDescription(e.target.value)}
+     placeholder="Как выглядит это место? Можно уточнить авторское описание."/>
+    <div><button className="wizard-light" onClick={()=>setEditing(false)}>Отмена</button>
+     <button className="wizard-primary" disabled={busy} onClick={()=>void onSave(description).then(()=>setEditing(false))}>Сохранить</button></div>
+  </div>:<><p>{location.description?.trim()||'В сценарии нет подробного описания. Добавь его вручную.'}</p>
+    <button className="wizard-location-edit-trigger" onClick={()=>setEditing(true)}>Уточнить описание</button></>}
+ </article>;
 }
 function NavButtons({back,next,nextLabel,busy}:{back:()=>void;next?:()=>void;nextLabel?:string;busy:boolean}){
  return <div className="wizard-footer-actions">
