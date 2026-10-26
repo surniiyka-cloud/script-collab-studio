@@ -124,11 +124,11 @@ export function registerProductionRoutes(
   const input=z.object({shots:z.array(approvedShot).min(1).max(20)}).parse(req.body);
   const count=await db.node.count({where:{sceneId,kind:'SHOT'}});
   if(count+input.shots.length>100)throw new HttpError(409,'SHOT_LIMIT','Scene has too many shots');
-  const nodes=await db.$transaction(Promise.all(input.shots.map((shot,i)=>db.node.create({data:{
+  const nodes=await db.$transaction(input.shots.map((shot,i)=>db.node.create({data:{
    projectId:scene.script.projectId,sceneId,kind:'SHOT',title:shot.title,description:shot.description,
    shotType:shot.shotType,durationMs:shot.durationMs,positionX:(count+i)*300,positionY:0,
    metadata:{production:{sourceLine:shot.sourceLine,soundCue:shot.soundCue,musicCue:shot.musicCue,status:'approved'}},
-  }}))));
+  }})));
   return {data:nodes};
  });
  app.get('/api/v1/projects/:projectId/production/timeline',async req=>{
