@@ -49,7 +49,7 @@ export type WorkflowSubject = {id:string;title:string;description:string|null;me
 export type WorkflowScene = {
  id:string;index:number;title:string;synopsis:string|null;locationId:string|null;
  suggestedLocation:string|null;timecode:string|null;timeOfDay:string|null;blocks:ImportBlock[];actionDescription:string;
- characters:string[];dialogues:Array<{speaker:string;text:string;sourceLine:number}>;
+ characters:string[];dialogues:Array<{speaker:string;text:string;sourceLine:number;delivery?:string}>;
  shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;media:WorkflowMedia[]}>;
 };
 export type WorkflowStory = {
