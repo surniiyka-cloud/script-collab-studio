@@ -6,11 +6,11 @@
 
 - Complete screenplay import: TXT, Fountain, Markdown, DOCX (Mammoth) and selectable-text PDF (PDF.js). Text is extracted in the browser; there is no OCR. Limit 400,000 characters and 150 scenes. Preview and explicit confirmation required.
 - Deterministic, reviewable scene/headings/dialogue parsing; imported original lines are preserved in Yjs screenplay XML fragments. Import never calls a generative model and never silently changes lines.
-- Found character names become CHARACTER graph nodes; users can add names and upload reference JPEG/PNG/WebP associated with that specific character. Named references reside in private S3-compatible MinIO storage and remain project-permission protected.
+- Found character names become CHARACTER graph nodes; users can add names and upload reference JPEG/PNG/WebP associated with that specific character. Named references reside in private S3-compatible SeaweedFS S3 storage and remain project-permission protected.
 - Scene-to-shot suggestions extracted from source text; optional *local* Ollama text model creates alternative plans only on request. Approval creates SHOT graph nodes with timing, sound and music cue notes. No automatic alteration of screenplay source.
 - Approved SHOT nodes support attached visual and audio (MP3/WAV) files.
 - Animatic timeline previews real attached stills and audio, controls play/pause and shot selection, durations and original captions.
-- Optional local FFmpeg MP4 export of approved still shots (1280x720, H.264/AAC; 25 shots or 150 seconds maximum). Export requires one image per shot, configured MinIO and locally installed FFmpeg.
+- Optional local FFmpeg MP4 export of approved still shots (1280x720, H.264/AAC; 25 shots or 150 seconds maximum). Export requires one image per shot, configured SeaweedFS S3 and locally installed FFmpeg.
 - No fake image/video/music generation or implied access to ChatGPT's image generation API; visual generative providers are still to come. Audio/music cue descriptions are not generated sounds.
 
 ## Test in Codespaces (this branch is stacked on PR #4, itself stacked on PR #3)
@@ -24,13 +24,13 @@ Run in a clean worktree (protect existing pnpm-lock.yaml changes before switchin
     pnpm test:logic
     bash scripts/verify-production.sh
 
-The integration script starts local PostgreSQL/MinIO, checks source import and Yjs persistence, approved shots/timeline, character detection and a stored/retrieved reference image. It does not test PDF/DOCX, local Ollama or FFmpeg.
+The integration script starts local PostgreSQL/SeaweedFS, checks source import and Yjs persistence, approved shots/timeline, character detection and a stored/retrieved reference image. It does not test PDF/DOCX, local Ollama or FFmpeg.
 
 To use the website manually:
 
-    docker compose up -d postgres minio
+    docker compose up -d postgres objectstore
 
-For existing ignored apps/api/.env, add ONLY missing lines for local MinIO:
+For existing ignored apps/api/.env, add ONLY missing lines for local SeaweedFS S3:
 
     S3_ENDPOINT=http://127.0.0.1:9000
     S3_ACCESS_KEY=localstudio
@@ -54,4 +54,8 @@ Manual checks:
 
 Remaining gates: Codespaces install/build, typed API compile, integration tests, PDF/DOCX review on a representative script, UI browser smoke, FFmpeg playback, generated pnpm lockfile commit, repository review. Keep PR draft until these pass. Merge PR #3 → PR #4 → PR #5 in order. No secrets or CI workflow modifications.
 
-Security: media is project-scoped; local MinIO credentials are demo-only; remove public-access assumptions before deployment. Storage object garbage collection on project deletion is a later task. Existing JWTs are 15-minute development bearer sessions; production needs token hardening and quotas.
+Security: media is project-scoped; local SeaweedFS S3 credentials are demo-only; remove public-access assumptions before deployment. Storage object garbage collection on project deletion is a later task. Existing JWTs are 15-minute development bearer sessions; production needs token hardening and quotas.
+
+## October 2026 Docker image compatibility
+
+`minio/minio:latest` is no longer publicly downloadable. The local Compose service was migrated to `objectstore` using the official `chrislusf/seaweedfs:latest` image, providing an authenticated S3-compatible endpoint on the same host URL `http://127.0.0.1:9000` (internal container port 8333). The existing S3 SDK, project-level media permissions, and demo credentials are unchanged. No third-party MinIO mirrors are needed. For production, review the storage engine, credentials, version pinning, backups and licensing separately.
