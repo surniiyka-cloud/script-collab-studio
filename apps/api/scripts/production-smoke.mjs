@@ -45,6 +45,18 @@ try{
  const characters=await call('/projects/'+projectId+'/production/characters');
  const character=characters.find(n=>n.title==='СЕРГЕЙ');
  assert.ok(character);
+ console.log('4b/6 Verify AI capabilities and no fabricated image output');
+ const caps=await call('/projects/'+projectId+'/production/ai-status');
+ assert.equal(typeof caps.image.configured,'boolean');
+ assert.equal(typeof caps.text.configured,'boolean');
+ if(!caps.image.configured){
+  const noAi=await fetch(url+'/api/v1/projects/'+projectId+'/production/shots/'+accepted[0].id+'/generate-image',{
+   method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:'{}',
+  });
+  assert.equal(noAi.status,503);
+  const refused=await noAi.json();
+  assert.equal(refused.error.code,'IMAGE_AI_NOT_CONFIGURED');
+ }
  console.log('5/6 Attach private PNG reference to named character');
  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==','base64');
  const uploaded=await fetch(url+'/api/v1/projects/'+projectId+'/production/nodes/'+character.id+'/media',{
