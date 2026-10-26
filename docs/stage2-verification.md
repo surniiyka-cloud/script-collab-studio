@@ -29,6 +29,13 @@ The observed HTTP 409 from rejecting a cycle and 404 for an unrelated account ar
 - Prisma v7 config and generated import extensions are in place.
 - Editor/Owner vs Viewer logic, single-process login/register throttling, and Yjs scene record cleanup are implemented.
 
+## Prepared real-time integration test (NOT YET EXECUTED)
+
+- Added `apps/api/scripts/collab-smoke.mjs` and dev-only `@hocuspocus/provider@4.7.1`.
+- `bash scripts/verify-backend.sh` now runs the original 8-step HTTP smoke **and** the two-client WebSocket test.
+- The new test registers two temporary users, creates a disposable scene, grants the second user Editor membership in the test fixture, verifies that both clients receive each other's edits, checks binary PostgreSQL `YDocState` contains both changes, and confirms a freshly connected client reads them.
+- This code was authored but **not executed** in the assistant environment. It requires another Codespaces run to verify and may surface compatibility issues. It does not yet test Viewer read-only, denied cross-project WS access, or cold restart replay.
+
 ## Still to complete before marking the backend stage finished
 
 - [ ] Commit/review `pnpm-lock.yaml` and `apps/api/prisma/migrations/` on the **feature** branch. They are absent from the remote branch as of this verification. The local Prisma message "Already in sync" does not prove that migration SQL is in Git.
