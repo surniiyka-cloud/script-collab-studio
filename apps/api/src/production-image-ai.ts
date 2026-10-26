@@ -21,6 +21,28 @@ async function ping(url:string,path:string):Promise<boolean>{
  }catch{return false;}
 }
 function localBase(url:string){return url.endsWith('/')?url.slice(0,-1):url;}
+async function ollamaModelReady():Promise<boolean>{
+ if(!env.OLLAMA_URL||!env.OLLAMA_MODEL)return false;
+ try{
+  const response=await fetch(localBase(env.OLLAMA_URL)+'/api/tags',{signal:AbortSignal.timeout(2500)});
+  if(!response.ok)return false;
+  const payload=await response.json() as {models?:Array<{name?:string;model?:string}>};
+  return (payload.models??[]).some(model=>model.name===env.OLLAMA_MODEL||model.model===env.OLLAMA_MODEL);
+ }catch{return false;}
+}
+async function comfyCheckpointReady():Promise<boolean>{
+ if(!env.COMFYUI_URL||!env.COMFYUI_CHECKPOINT)return false;
+ try{
+  const response=await fetch(localBase(env.COMFYUI_URL)+'/object_info/CheckpointLoaderSimple',
+   {signal:AbortSignal.timeout(3000)});
+  if(!response.ok)return false;
+  const payload=await response.json() as {
+   CheckpointLoaderSimple?:{input?:{required?:{ckpt_name?:[string[]]}}}
+  };
+  return payload.CheckpointLoaderSimple?.input?.required?.ckpt_name?.[0]?.includes(env.COMFYUI_CHECKPOINT)??false;
+ }catch{return false;}
+}
+
 /**
  * A fixed workflow avoids executing arbitrary user-supplied ComfyUI graphs.
  * Requires an installed compatible checkpoint in local ComfyUI.
@@ -92,17 +114,19 @@ export function registerImageGenerationRoutes(
   await access(req,projectId);
   const textConfigured=Boolean(env.OLLAMA_URL&&env.OLLAMA_MODEL);
   const imageConfigured=Boolean(env.COMFYUI_URL&&env.COMFYUI_CHECKPOINT);
-  const [textAvailable,imageAvailable]=await Promise.all([
+  const [textOnline,imageOnline,textAvailable,imageAvailable]=await Promise.all([
    textConfigured?ping(env.OLLAMA_URL!,'/api/tags'):false,
    imageConfigured?ping(env.COMFYUI_URL!,'/system_stats'):false,
+   textConfigured?ollamaModelReady():false,
+   imageConfigured?comfyCheckpointReady():false,
   ]);
   return {data:{
    text:providerStatus(textConfigured,textAvailable,'Ollama',
      !textConfigured?'Не настроен: текстовый ИИ отключён.':
-     textAvailable?'Движок отвечает. Нужна установленная выбранная модель.':'Движок не отвечает.'),
+     textAvailable?'Модель найдена и готова к запросу.':textOnline?'Движок работает, но выбранная модель не найдена.':'Движок не отвечает.'),
    image:providerStatus(imageConfigured,imageAvailable,'ComfyUI',
      !imageConfigured?'Не настроен: генерация изображений отключена.':
-     imageAvailable?'Движок отвечает. Проверьте установленный checkpoint.':'Движок не отвечает.'),
+     imageAvailable?'Checkpoint найден и доступен.':imageOnline?'Движок работает, но выбранный checkpoint не найден.':'Движок не отвечает.'),
   }};
  });
  app.post('/api/v1/projects/:projectId/production/shots/:shotId/generate-image',async req=>{
