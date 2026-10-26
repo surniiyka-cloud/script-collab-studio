@@ -34,7 +34,7 @@ function stateFromBlocks(blocks:Block[]):Uint8Array<ArrayBuffer>{
  doc.destroy();
  return update;
 }
-function readBlocks(state:Uint8Array):Block[]{
+export function readBlocks(state:Uint8Array):Block[]{
  const doc=new Y.Doc();
  try{
   Y.applyUpdate(doc,state);
@@ -84,13 +84,27 @@ export function registerProductionRoutes(
     include:{acts:true},
    });
    const actId=script.acts[0].id;
+   const locations=new Map<string,string>();
    const scenes=[];
    for(let i=0;i<preview.scenes.length;i++){
     const sceneInput=preview.scenes[i];
     const scene=await tx.scene.create({data:{
      scriptId:script.id,actId,title:sceneInput.title,sortKey:String(i+1).padStart(12,'0'),
     }});
-    await tx.node.create({data:{projectId,sceneId:scene.id,title:scene.title,kind:'SCENE'}});
+    const match=scene.title.match(/^(?:INT\\/EXT|ИНТ\\/НАТ|INT|EXT|ИНТ|НАТ)\\.?\\s+(.+)$/iu);
+    const place=match?.[1]?.split(/\\s+[—–-]\\s+/u)[0]?.trim().replace(/[.:]$/,'').slice(0,200);
+    let locationId:string|undefined;
+    if(place){
+     const normalized=place.toLocaleLowerCase('ru-RU');
+     locationId=locations.get(normalized);
+     if(!locationId){
+      const found=await tx.node.findFirst({where:{projectId,kind:'LOCATION',title:{equals:place,mode:'insensitive'}}});
+      locationId=found?.id??(await tx.node.create({data:{projectId,kind:'LOCATION',title:place}})).id;
+      locations.set(normalized,locationId);
+     }
+    }
+    await tx.node.create({data:{projectId,sceneId:scene.id,title:scene.title,kind:'SCENE',
+     metadata:{workflow:{locationId:locationId??null}}}});
     await tx.yDocState.create({data:{documentName:'scene:'+scene.id,projectId,update:stateFromBlocks(sceneInput.blocks)}});
     scenes.push({id:scene.id,title:scene.title});
    }
