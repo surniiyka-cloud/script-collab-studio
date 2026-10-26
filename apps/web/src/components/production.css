@@ -73,3 +73,7 @@
 .film-strip button span{color:#c88767;font-size:10px}
 .film-strip button strong{font-size:11px;color:#5c5f6a}
 @media(max-width:800px){.production-nav button{font-size:10px;gap:5px;padding:12px 4px}.production-head{flex-direction:column;align-items:flex-start}.production-mode{display:none}.production-row{align-items:flex-start}.production-panel{padding:17px}.film-preview-image{height:230px}.film-preview{min-height:300px}}
+
+.film-preview-art{width:100%;display:flex;align-items:center;justify-content:center;min-height:290px}
+.film-preview-audio{width:100%;background:#212735;border-top:1px solid #ffffff22;color:#d1a591;display:flex;align-items:center;justify-content:center;gap:16px;padding:11px 20px}
+.film-preview-audio audio{width:min(100%,500px);height:38px}
