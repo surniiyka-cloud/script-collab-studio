@@ -46,7 +46,11 @@ API: `http://localhost:3001/api/v1` · WebSocket: `ws://localhost:3002`. `docker
 | POST | `/projects/:projectId/edges` | Add sequence/dependency/alternative edges |
 | PATCH, DELETE | `/edges/:edgeId` | Edit label/remove edge |
 
-All routes above (except `/health`, register/login) use Bearer JWT. Write access requires Owner/Editor; Owner-only changes project metadata and deletes project. Register and login currently have **no rate limiting**: deploy behind rate-limiting infrastructure or add application rate limits before exposing publicly. JWT refresh/rotation and invitations are scheduled for later stages.
+All routes above (except `/health`, register/login) use Bearer JWT. Write access requires Owner/Editor; Owner-only changes project metadata and deletes project. Register and login now have **single-process, IP-based fixed-window throttling** (12 login/min, 6 register/min). This is for development; multi-replica deployments require a shared limiter (Redis/gateway). JWT refresh/rotation and invitations are scheduled for later stages.
+
+### Dependency-free logic tests
+
+From the repository root, with Node.js 22+: `node --experimental-strip-types --test apps/api/tests/graph.test.ts apps/api/tests/security.test.ts`. This does **not** validate Prisma, API integration, Hocuspocus or the full build.
 
 ### Minimal smoke usage
 

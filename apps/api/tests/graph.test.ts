@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createsCycle } from '../src/graph.js';
+import { createsCycle } from '../src/graph.ts';
 
 test('reject self links and directed loops', () => {
   const links = [ { sourceNodeId: 'a', targetNodeId: 'b' }, { sourceNodeId: 'b', targetNodeId: 'c' } ];

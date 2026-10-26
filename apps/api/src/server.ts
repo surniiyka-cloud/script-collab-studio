@@ -6,6 +6,7 @@ import { hashPassword, issueAccessToken, readAccessToken, verifyPassword } from 
 import { createsCycle } from './graph.js';
 import { HttpError, required } from './errors.js';
 import { edgeScope, membership, nodeScope, sceneScope, scriptScope } from './policy.js';
+import { FixedWindowLimiter } from './security.js';
 
 const id = z.uuid();
 const params = z.object({ projectId: id });
@@ -39,6 +40,8 @@ async function scoped(req: Request, idValue: string, lookup: (id: string) => Pro
 
 export function makeApp() {
   const app = fastify({ logger: true, bodyLimit: 1024 * 1024 });
+  const loginLimiter = new FixedWindowLimiter(12, 60_000);
+  const registerLimiter = new FixedWindowLimiter(6, 60_000);
   app.addHook('onRequest', async (req, reply) => {
     const origin = req.headers.origin;
     if (origin === env.CORS_ORIGIN) {
@@ -47,7 +50,20 @@ export function makeApp() {
       reply.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
       reply.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
     }
-    if (req.method === 'OPTIONS') { reply.status(204).send(); }
+    if (req.method === 'OPTIONS') { reply.status(204).send(); return reply; }
+    // req.ip uses the socket address: never accept untrusted X-Forwarded-For.
+    const path = req.url.split('?', 1)[0];
+    const limiter = req.method === 'POST'
+      ? path === '/api/v1/auth/login' ? loginLimiter
+      : path === '/api/v1/auth/register' ? registerLimiter : undefined
+      : undefined;
+    if (limiter) {
+      const decision = limiter.check(req.ip);
+      if (!decision.allowed) {
+        return reply.header('Retry-After', String(decision.retryAfterSeconds))
+          .status(429).send({ error: { code: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, requestId: req.id });
+      }
+    }
   });
   app.setErrorHandler((error, req, reply) => {
     const e = error as Error & { code?: string };
@@ -128,7 +144,11 @@ export function makeApp() {
     const scriptId = parseParams(req, 'scriptId');
     await scoped(req, scriptId, scriptScope, true);
     const sceneIds = (await db.scene.findMany({ where: { scriptId }, select: { id: true } })).map(s => s.id);
-    await db.$transaction(async tx => { await tx.node.deleteMany({ where: { sceneId: { in: sceneIds } } }); await tx.script.delete({ where: { id: scriptId } }); });
+    await db.$transaction(async tx => {
+      await tx.yDocState.deleteMany({ where: { documentName: { in: sceneIds.map(id => `scene:${id}`) } } });
+      await tx.node.deleteMany({ where: { sceneId: { in: sceneIds } } });
+      await tx.script.delete({ where: { id: scriptId } });
+    });
     return asData({ deleted: true });
   });
   app.get('/api/v1/scripts/:scriptId/acts', async req => {
@@ -183,7 +203,11 @@ export function makeApp() {
   app.delete('/api/v1/scenes/:sceneId', async req => {
     const sceneId = parseParams(req, 'sceneId');
     await scoped(req, sceneId, sceneScope, true);
-    await db.$transaction(async tx => { await tx.node.deleteMany({ where: { sceneId } }); await tx.scene.delete({ where: { id: sceneId } }); });
+    await db.$transaction(async tx => {
+      await tx.yDocState.deleteMany({ where: { documentName: `scene:${sceneId}` } });
+      await tx.node.deleteMany({ where: { sceneId } });
+      await tx.scene.delete({ where: { id: sceneId } });
+    });
     return asData({ deleted: true });
   });
   app.get('/api/v1/projects/:projectId/graph', async req => {

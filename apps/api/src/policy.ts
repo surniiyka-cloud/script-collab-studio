@@ -1,10 +1,11 @@
 import { db } from './db.js';
 import { HttpError, required } from './errors.js';
+import { canEdit } from './security.js';
 import type { ProjectRole } from './generated/prisma/enums.ts';
 
 export async function membership(userId: string, projectId: string, write = false): Promise<ProjectRole> {
   const member = required(await db.projectMember.findUnique({ where: { projectId_userId: { projectId, userId } } }));
-  if (write && member.role === 'VIEWER') throw new HttpError(403, 'FORBIDDEN', 'Editor role required');
+  if (write && !canEdit(member.role)) throw new HttpError(403, 'FORBIDDEN', 'Editor role required');
   return member.role;
 }
 export async function scriptScope(scriptId: string): Promise<string> {
