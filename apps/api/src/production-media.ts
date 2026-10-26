@@ -34,6 +34,12 @@ function validFile(bytes:Buffer,mime:string){
  if(mime==='audio/wav'||mime==='audio/x-wav')return bytes.length>12&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WAVE';
  return false;
 }
+/** Read an authenticated project's approved media from private S3/MinIO. */
+export async function getStoredMediaBytes(key:string):Promise<Uint8Array>{
+ const response=await store().send(new GetObjectCommand({Bucket:env.S3_BUCKET,Key:key}));
+ if(!response.Body)throw new HttpError(404,'MEDIA_MISSING','Медиафайл не найден в хранилище.');
+ return response.Body.transformToByteArray();
+}
 export function registerMediaRoutes(
  app:FastifyInstance,
  access:(req:FastifyRequest,id:string,write?:boolean)=>Promise<unknown>,
