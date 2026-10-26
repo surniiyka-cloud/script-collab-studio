@@ -179,12 +179,13 @@ export function registerProductionRoutes(
   const script=required(await db.script.findUnique({where:{id:scriptId},select:{id:true,projectId:true,title:true}}));
   if(script.projectId!==projectId)throw new HttpError(404,'NOT_FOUND','Script does not belong to project');
   const scenes=await db.scene.findMany({where:{scriptId},orderBy:[{act:{sortKey:'asc'}},{sortKey:'asc'}]});
-  const shots=await db.node.findMany({where:{projectId,sceneId:{in:scenes.map(s=>s.id)},kind:'SHOT'},orderBy:{createdAt:'asc'}});
+  const shots=await db.node.findMany({where:{projectId,sceneId:{in:scenes.map(s=>s.id)},kind:'SHOT'},orderBy:{createdAt:'asc'},include:{mediaLinks:{include:{asset:true}}}});
   return {data:{script,scenes:scenes.map(scene=>({
    id:scene.id,title:scene.title,
    shots:shots.filter(shot=>shot.sceneId===scene.id).map(shot=>({
     id:shot.id,title:shot.title,description:shot.description,shotType:shot.shotType,
     durationMs:shot.durationMs??3500,metadata:shot.metadata,
+    media:shot.mediaLinks.map(link=>({id:link.asset.id,kind:link.asset.kind,mimeType:link.asset.mimeType,filename:link.asset.filename})),
    })),
   }))}};
  });
