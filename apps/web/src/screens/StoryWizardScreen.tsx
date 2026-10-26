@@ -236,6 +236,14 @@ export function StoryWizardScreen(){
   if(!token)return;
   await act(async()=>{await api.updateNode(token,id,{title,description});await refresh();},'Кадр обновлён.');
  }
+ async function moveShot(shotId:string,delta:number){
+  if(!token||!currentScene)return;
+  const ids=currentScene.shots.map(s=>s.id);
+  const from=ids.indexOf(shotId),to=from+delta;
+  if(from<0||to<0||to>=ids.length)return;
+  [ids[from],ids[to]]=[ids[to],ids[from]];
+  await act(async()=>{await api.reorderShots(token,currentScene.id,ids);await refresh();},'Порядок кадров обновлён.');
+ }
  async function uploadShot(id:string,file:File){
   if(!token||!projectId)return;
   await act(async()=>{await api.uploadMedia(token,projectId,id,file);await refresh();},'Изображение кадра сохранено.');
@@ -371,7 +379,8 @@ export function StoryWizardScreen(){
         <div className="wizard-inline-heading"><h3>Кадры этой сцены</h3>
          <button className="wizard-light" disabled={busy} onClick={()=>void plan()}><RefreshCw size={15}/> Предложить планы по тексту</button></div>
         {!!currentScene.shots.length&&<div className="wizard-shot-grid">{currentScene.shots.map((shot,i)=><ShotCard key={shot.id} shot={shot} token={token!}
-         number={i+1} onFile={file=>uploadShot(shot.id,file)} onSave={(title,desc)=>updateShot(shot.id,title,desc)} busy={busy}/>)}</div>}
+         number={i+1} onFile={file=>uploadShot(shot.id,file)} onSave={(title,desc)=>updateShot(shot.id,title,desc)}
+         onMove={delta=>moveShot(shot.id,delta)} up={i>0} down={i<currentScene.shots.length-1} busy={busy}/>)}</div>}
         {!currentScene.shots.length&&!draft.length&&<div className="wizard-shots-blank"><Clapperboard size={34}/>
          <strong>Раскадровки пока нет</strong><p>Нажми «Предложить планы по тексту» или добавь первый кадр вручную.</p></div>}
         <div className="wizard-shot-drafts">
@@ -445,9 +454,10 @@ function NavButtons({back,next,nextLabel,busy}:{back:()=>void;next?:()=>void;nex
   {next&&<button className="wizard-primary" disabled={busy} onClick={next}>{nextLabel??'Далее'} <ArrowRight size={17}/></button>}
  </div>;
 }
-function ShotCard({shot,token,number,busy,onFile,onSave}:{
- shot:WorkflowScene['shots'][number];token:string;number:number;busy:boolean;
+function ShotCard({shot,token,number,busy,up,down,onFile,onSave,onMove}:{
+ shot:WorkflowScene['shots'][number];token:string;number:number;busy:boolean;up:boolean;down:boolean;
  onFile:(file:File)=>Promise<void>;onSave:(title:string,description:string)=>Promise<void>;
+ onMove:(delta:number)=>Promise<void>;
 }){
  const [editing,setEditing]=useState(false);
  const [title,setTitle]=useState(shot.title);
@@ -464,6 +474,8 @@ function ShotCard({shot,token,number,busy,onFile,onSave}:{
    <label><Upload size={16}/> Добавить фото<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy}
     onChange={e=>{const file=e.target.files?.[0];if(file)void onFile(file);e.target.value='';}}/></label>
    <button onClick={()=>setEditing(p=>!p)}>{editing?'Отмена':'Изменить'}</button>
+   <button disabled={busy||!up} aria-label="Переместить кадр раньше" title="Раньше" onClick={()=>void onMove(-1)}>↑</button>
+   <button disabled={busy||!down} aria-label="Переместить кадр позже" title="Позже" onClick={()=>void onMove(1)}>↓</button>
   </div>
  </article>;
 }
