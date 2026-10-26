@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { ArrowRight, Check, CirclePlay, Clapperboard, FileText, Film, ImagePlus, Music, Pause, Play, Plus, RefreshCw, Sparkles, Upload, UserRound, WandSparkles } from 'lucide-react';
 import { api } from '../api';
-import type { Asset, FilmTimeline, ImportPreview, ProductionNode, ShotDraft } from '../api';
+import type { AIStatus, Asset, FilmTimeline, ImportPreview, ProductionNode, ShotDraft } from '../api';
 import './production.css';
 
 type Tab='import'|'cast'|'shots'|'preview';
@@ -21,6 +21,9 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
  const [timeline,setTimeline]=useState<FilmTimeline|null>(null);
  const [busy,setBusy]=useState(false);
  const [rendering,setRendering]=useState(false);
+ const [aiStatus,setAiStatus]=useState<AIStatus|null>(null);
+ const [imagePending,setImagePending]=useState<string|null>(null);
+ const [aiStatusLoading,setAiStatusLoading]=useState(false);
  const [error,setError]=useState('');
  const [info,setInfo]=useState('');
  const [playing,setPlaying]=useState(false);
@@ -28,6 +31,14 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
  const [refresh,setRefresh]=useState(0);
  const storyFrames=useMemo(()=>timeline?.scenes.flatMap(scene=>scene.shots.map(shot=>({...shot,sceneTitle:scene.title})))??[],[timeline]);
 
+ useEffect(()=>{
+  if(tab!=='shots')return;
+  let live=true;setAiStatusLoading(true);
+  void api.aiStatus(token,projectId).then(value=>{if(live)setAiStatus(value);})
+   .catch(error=>{if(live)setError(error instanceof Error?error.message:String(error));})
+   .finally(()=>{if(live)setAiStatusLoading(false);});
+  return ()=>{live=false;};
+ },[tab,token,projectId,refresh]);
  useEffect(()=>{
   if(tab!=='cast')return;
   let live=true;
@@ -97,9 +108,18 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
    if(file.size>8*1024*1024||!['image/jpeg','image/png','image/webp','audio/mpeg','audio/wav','audio/x-wav'].includes(file.type))
     throw Error('Выберите JPG/PNG/WebP/MP3/WAV до 8 МБ.');
    await api.uploadMedia(token,projectId,nodeId,file);
-   setInfo('Файл сохранён в приватном хранилище MinIO.');
+   setInfo('Файл сохранён в приватном S3-хранилище.');
    setRefresh(v=>v+1);
   }catch(e){report(e);}finally{setBusy(false);}
+ }
+ async function createImageForShot(shot:ProductionNode){
+  if(imagePending||busy)return;
+  setImagePending(shot.id);setError('');setInfo('');
+  try{
+   const result=await api.generateFrameImage(token,projectId,shot.id);
+   setInfo('ИИ создал изображение: '+result.asset.filename+'. Оно прикреплено к кадру.');
+   setRefresh(value=>value+1);
+  }catch(error){report(error);}finally{setImagePending(null);}
  }
  async function generate(useAI=false){
   if(!sceneId)return;
@@ -187,21 +207,41 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
     </div>
    </section>}
   {tab==='shots'&&<section className="production-panel">
-    <div className="production-panel-title"><Clapperboard size={22}/><div><h3>Покадровка текущей сцены</h3><p>Создайте варианты кадров из оригинального текста. Затем проверьте и утвердите их.</p></div></div>
+    <div className="production-panel-title"><Clapperboard size={22}/><div><h3>Покадровка и изображения</h3><p>Сначала создаём текстовый план, затем ИИ рисует изображения утверждённых кадров. Авторский сценарий не меняем.</p></div></div>
     {!sceneId?<p className="production-empty">Выберите сцену в навигаторе слева.</p>:<>
       <div className="production-row"><div className="production-shot-actions">
-       <button className="button button-subtle" disabled={busy} onClick={()=>void generate()}><RefreshCw size={16}/> Черновая покадровка</button>
-       <button className="button button-subtle" disabled={busy} onClick={()=>void generate(true)}><WandSparkles size={16}/> Предложить через Ollama</button>
-      </div><span className="production-muted">ИИ доступен только если настроен локально</span></div>
+       <button className="button button-subtle" disabled={busy} onClick={()=>void generate()}><RefreshCw size={16}/> Создать текстовый план</button>
+       <button className="button button-subtle" disabled={busy||!aiStatus?.text.reachable} onClick={()=>void generate(true)} title={!aiStatus?.text.reachable?'Сначала подключите локальную модель Ollama':''}><WandSparkles size={16}/> Улучшить план через ИИ</button>
+      </div><span className="production-muted">Это пока описания кадров, не изображения</span></div>
+      <div className="production-ai-status" aria-label="Состояние ИИ">
+        <div className="production-ai-provider">
+          <strong>Текстовый ИИ · Ollama</strong>
+          <span className={aiStatus?.text.reachable?'ai-online':'ai-offline'}>{aiStatusLoading?'Проверка…':aiStatus?.text.reachable?'Доступен':'Не подключён'}</span>
+          <p>{aiStatus?.text.message||'Проверяем подключение…'}</p>
+        </div>
+        <div className="production-ai-provider">
+          <strong>Изображения · ComfyUI</strong>
+          <span className={aiStatus?.image.reachable?'ai-online':'ai-offline'}>{aiStatusLoading?'Проверка…':aiStatus?.image.reachable?'Доступен':'Не подключён'}</span>
+          <p>{aiStatus?.image.message||'Проверяем подключение…'}</p>
+        </div>
+        <p className="production-ai-help">Без подключённого движка сайт не может нарисовать кадр. В Codespaces нет заранее установленной генеративной модели или бесплатного облачного GPU. <a href="https://github.com/surniiyka-cloud/script-collab-studio/blob/chatgpt/feature-script-to-film-pipeline/docs/ai-image-setup.md" target="_blank" rel="noopener noreferrer">Как включить генерацию</a></p>
+      </div>
       {!!approved.length&&<div className="production-approved">
        <h4>Утверждённые кадры ({approved.length})</h4>
-       {approved.map(shot=><div key={shot.id} className="production-approved-shot">
+       <p className="production-muted">Сгенерированные или загруженные картинки появятся непосредственно в карточках ниже.</p>
+       <div className="production-approved-grid">{approved.map(shot=><div key={shot.id} className="production-approved-shot">
          <strong>{shot.title}</strong><p>{shot.description}</p>
          <div className="production-thumbs">{shot.mediaLinks?.map(link=><AssetView key={link.asset.id} token={token} asset={link.asset}/>)}</div>
-         <label className="production-filebutton"><ImagePlus size={15}/> Загрузить кадр или звук
+         {!shot.mediaLinks?.some(link=>link.asset.kind==='IMAGE')&&<div className="production-frame-placeholder"><ImagePlus size={27}/><span>Изображения пока нет</span></div>}
+         <div className="production-generate-actions">
+           <button className="button button-primary" disabled={busy||imagePending!==null||!aiStatus?.image.reachable} title={!aiStatus?.image.reachable?'Настройте ComfyUI и модель для генерации изображений':''} onClick={()=>void createImageForShot(shot)}>
+             <WandSparkles size={15}/>{imagePending===shot.id?'Генерируем (до 2 мин)…':'Сгенерировать изображение'}
+           </button>
+           <label className="production-filebutton"><ImagePlus size={15}/> Загрузить своё
            <input type="file" accept="image/jpeg,image/png,image/webp,audio/mpeg,audio/wav" disabled={busy} onChange={e=>{const f=e.target.files?.[0];if(f)void sendReference(shot.id,f);e.target.value='';}}/>
-         </label>
-       </div>)}
+           </label>
+         </div>
+       </div>)}</div>
       </div>}
       {draft.length>0&&<div className="production-drafts"><h4>Варианты для утверждения ({draft.length})</h4>
         {draft.map((shot,i)=><div key={i} className="production-shot-editor">
@@ -226,7 +266,7 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
    </section>}
   {tab==='preview'&&<section className="production-panel">
     <div className="production-panel-title"><Film size={21}/><div><h3>Предпросмотр фильма</h3>
-      <p>Аниматик из утверждённых кадров. Пока это не экспорт MP4 и не сгенерированное видео.</p></div></div>
+      <p>Последовательность готовых изображений со звуком. Экспорт MP4 доступен после заполнения всех кадров; движение внутри кадров пока не генерируется.</p></div></div>
     {!scriptId?<p className="production-empty">Выберите сценарий слева.</p>:<>
       <button className="button button-subtle button-small" onClick={()=>setRefresh(x=>x+1)}><RefreshCw size={14}/> Обновить таймлайн</button>
       {!storyFrames.length?<p className="production-empty">Чтобы собрать превиз, сначала утвердите покадровку хотя бы одной сцены.</p>:<>
