@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Generated Prisma 7 client (regenerate with pnpm --filter @studio/api db:generate)
+apps/api/src/generated/prisma/
