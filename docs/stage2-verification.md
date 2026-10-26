@@ -1,6 +1,6 @@
 # Stage 2 verification — 2026-10-26
 
-**Status:** Codespaces build, Prisma validation, 5 logic tests, 8/8 database-backed HTTP checks, and **3/3 two-editor Yjs WebSocket/persistence checks passed**. Initial Prisma migration and pnpm lockfile are **committed and verified in GitHub** (commit `1ef26a4`). PR #2 remains draft while the new **fresh-DB migration replay** and **Viewer/outsider WebSocket access tests** await execution. This is not a production-readiness declaration.
+**Status (26 October 2026): Stage 2 development backend acceptance checks PASSED in GitHub Codespaces.** Successful TypeScript/Prisma build; Prisma schema validation; 5/5 logic tests; 8/8 HTTP integration steps; clean PostgreSQL migration replay from committed SQL; and expanded two-editor Yjs integration test covering outsider denial and Viewer read-only. Initial SQL migration and pnpm lockfile are committed in `1ef26a4`. **This does not establish production readiness or a working frontend.**
 
 ## Observed Codespaces results (user-supplied terminal output)
 
@@ -17,11 +17,12 @@ Executed: `bash scripts/verify-backend.sh` in a GitHub Codespace on the feature 
 | Fastify API | Listening at :3001; `/health/ready` responded 200 |
 | Hocuspocus WS | v4.7.1 listening at :3002 |
 | HTTP integration | **PASS: 8/8** project/script/two scenes/scene nodes/sequence edge/cycle denial/unauthorized isolation/deletion |
-| Yjs/WebSocket integration | **PASS: 3/3** two authorized editors sync both changes; CRDT state persisted to PostgreSQL; third client reads merged text |
+| Yjs/WebSocket integration | **PASS: 5/5 checkpoints** (3 original steps plus outsider denial and Viewer read-only enforcement) |
+| Fresh PostgreSQL migration | **PASS** `prisma migrate deploy` against temporary `studio_verify_…` DB; `prisma migrate status` up to date; 7 core tables verified |
 
 The observed HTTP 409 from rejecting a cycle and 404 for an unrelated account are **expected policy outcomes**. The script reported: `PASS: HTTP backend smoke (auth, project, script, scenes, nodes, edge, cycle, membership, deletion).`
 
-**Second Codespaces run:** After `git pull --ff-only`, running the updated `bash scripts/verify-backend.sh` again also passed all 5 logic checks, 8 HTTP smoke steps and the newly added 3 WebSocket collaboration steps. The test printed `PASS: Two-user Hocuspocus/Yjs roundtrip + PostgreSQL binary-state persistence.` The terminal initially showed untracked `apps/api/prisma/migrations/`, `pnpm-lock.yaml`, and `package-lock.json`; the user subsequently validated Prisma successfully, committed only the migration and pnpm lockfile, and pushed commit `1ef26a4` to the feature branch. GitHub file readback verified both. `package-lock.json` is ignored in the pnpm monorepo.
+**Previous Codespaces run:** After `git pull --ff-only`, running the updated `bash scripts/verify-backend.sh` again also passed all 5 logic checks, 8 HTTP smoke steps and the newly added 3 WebSocket collaboration steps. The test printed `PASS: Two-user Hocuspocus/Yjs roundtrip + PostgreSQL binary-state persistence.` The terminal initially showed untracked `apps/api/prisma/migrations/`, `pnpm-lock.yaml`, and `package-lock.json`; the user subsequently validated Prisma successfully, committed only the migration and pnpm lockfile, and pushed commit `1ef26a4` to the feature branch. GitHub file readback verified both. `package-lock.json` is ignored in the pnpm monorepo.
 
 **Warning:** pnpm reported ignored postinstall scripts for `@prisma/engines`, `argon2`, `esbuild` and `prisma`. These did **not** block the observed build or smoke test. Do not approve arbitrary new dependency scripts without review. A clean-environment reproducibility check is advisable once the lockfile is committed.
 
@@ -34,20 +35,26 @@ The observed HTTP 409 from rejecting a cycle and 404 for an unrelated account ar
 
 ## Real-time collaboration verification (executed in Codespaces)
 
-- `apps/api/scripts/collab-smoke.mjs` ran successfully through `bash scripts/verify-backend.sh`.
-- **1/3:** two authorized editors connected to the same scene; each received the other's Yjs change.
-- **2/3:** `YDocState` in PostgreSQL contained both edits after the Hocuspocus persistence debounce.
-- **3/3:** a freshly connected client obtained the merged screenplay.
-- Confirmed: live roundtrip and persisted database state **in the same running server process**. **Not proven:** data restoration after a full process restart, Viewer write denial over WS, a cross-project WS rejection, or a brand-new database replay from the committed migration.
+The latest `bash scripts/verify-backend.sh` completed all integration gates on the feature branch:
+
+- **1/5:** two authorized editors connected to the same scene and received each other's Yjs changes.
+- **2/5:** PostgreSQL `YDocState` held their combined CRDT text.
+- **3/5:** a fresh third connection saw the merged screenplay.
+- **4/5:** an unrelated user was denied WebSocket authentication (the `[onAuthenticate] Resource not found` message is expected).
+- **5/5:** a project Viewer could read the scene but could not broadcast/persist its own edits.
+- A disposable database named `studio_verify_…` was created using `prisma migrate deploy`; Prisma confirmed the migration applied and 7 core tables existed. The test cleaned up its temporary database.
+- The log finished with `All local backend gates passed: clean-DB migration replay, HTTP API and WebSocket permissions.`
+
+**Still not demonstrated by this test:** cold server-restart persistence/recovery and authorization revocation of *already-connected* WebSocket clients. These remain later hardening/quality tests.
 
 ## Still to complete before marking the backend stage finished
 
 - [x] Review and commit `pnpm-lock.yaml` and `apps/api/prisma/migrations/` on the feature branch; GitHub readback confirms commit `1ef26a4`. Do not commit `package-lock.json` or `.env`.
-- [x] Run an **actual Yjs WebSocket integration test** for two authorized writers, merged state persisted in PostgreSQL, and a third synchronized connection. **Still pending:** Viewer read-only, denied cross-project access, and restart durability.
+- [x] Verify authorized two-writer Yjs collaboration, persisted PostgreSQL state, third-client re-sync, unrelated-user WebSocket rejection and Viewer read-only; cold server restart and live role-revocation remain outside this gate.
 - [x] `pnpm --filter @studio/api exec prisma validate` passed: `The schema at prisma/schema.prisma is valid`.
-- [ ] **New test (not executed):** `scripts/verify-fresh-db.sh` creates a random temporary database *inside the local Compose PostgreSQL*, calls `prisma migrate deploy` and `prisma migrate status` with its temporary `DATABASE_URL`, verifies seven core tables, and drops only that temporary database on exit.
-- [ ] **New test (not executed):** extended `apps/api/scripts/collab-smoke.mjs` tests a rejected unaffiliated WebSocket token and Viewer read-only enforcement (no edits propagate to writers or persisted state).
-- [ ] Review any new untracked files before staging; do not commit `.env`, tokens, or keys.
+- [x] `scripts/verify-fresh-db.sh` successfully replayed the committed migration into a temporary Compose PostgreSQL database, checked migration status and verified seven core tables.
+- [x] Extended `apps/api/scripts/collab-smoke.mjs` passed unaffiliated-user WebSocket denial and Viewer read-only checks (no unauthorized mutations reached writers or persisted state).
+- [x] The user's latest `git status --short` generated no entries in the supplied terminal log after a successful run; continue to keep `.env`, tokens and credentials out of Git.
 - [ ] Stage 1 PR #1 remains open; backend draft PR #2 is stacked on the architecture branch and must be reviewed in that order.
 
 ## Security & deployment boundaries
@@ -69,4 +76,4 @@ git status --short
 find apps/api/prisma/migrations -type f
 ```
 
-The script starts local infrastructure and temporary test records. It now also runs `scripts/verify-fresh-db.sh` and the expanded Hocuspocus authorization tests; **these additions have not yet run in Codespaces**. The fresh-DB script provisions and drops only a randomly named test database on the local Docker Compose PostgreSQL service. Do not point it at production databases.
+The script was successfully executed in Codespaces, including `scripts/verify-fresh-db.sh` and the expanded Hocuspocus authorization tests. The fresh-DB script provisions and drops only a randomly named test database on the local Docker Compose PostgreSQL service. Do not point it at production databases.
