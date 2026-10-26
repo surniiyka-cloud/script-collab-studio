@@ -91,8 +91,8 @@ export function registerProductionRoutes(
     const scene=await tx.scene.create({data:{
      scriptId:script.id,actId,title:sceneInput.title,sortKey:String(i+1).padStart(12,'0'),
     }});
-    const match=scene.title.match(/^(?:INT\\/EXT|ИНТ\\/НАТ|INT|EXT|ИНТ|НАТ)\\.?\\s+(.+)$/iu);
-    const place=match?.[1]?.split(/\\s+[—–-]\\s+/u)[0]?.trim().replace(/[.:]$/,'').slice(0,200);
+    const match=scene.title.match(/^(?:INT\/EXT|ИНТ\/НАТ|INT|EXT|ИНТ|НАТ)\.?\s+(.+)$/iu);
+    const place=match?.[1]?.split(/\s+[—–-]\s+/u)[0]?.trim().replace(/[.:]$/,'').slice(0,200);
     let locationId:string|undefined;
     if(place){
      const normalized=place.toLocaleLowerCase('ru-RU');
