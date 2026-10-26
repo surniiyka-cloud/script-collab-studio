@@ -9,6 +9,14 @@ A collaborative workspace for screenplay writing and storyboarding. **Stages 1 (
 - Argon2id password hashing, JWT bearer access tokens, Owner/Editor/Viewer checks.
 - Stage 3 adds a React 19 / Vite 7 / Tailwind 4 web client. Rich-text Yjs editor, interactive React Flow and object storage uploads remain later stages.
 
+## Stage 5 — Script-to-Film production workflow (draft)
+
+In the separate `chatgpt/feature-script-to-film-pipeline` branch, the project workspace gains **Производство** with four steps: upload/paste a complete screenplay (TXT/Fountain/MD/DOCX/selectable-text PDF), review scene/character parsing and commit to Yjs, attach named character reference images (private MinIO), propose/approve per-scene shots, attach images/audio and preview an animatic. An optional local Ollama text model can propose shot lists. FFmpeg can create an MP4 **still-image animatic** from approved, illustrated shots; it is not a generative AI film.
+
+**Stage 5 is NOT YET VERIFIED OR MERGED.** See [Script-to-Film implementation and tests](docs/script-to-film-implementation.md). Requirements for browser upload: PostgreSQL and MinIO from `docker compose up -d postgres minio`; append the local S3_ENDPOINT/S3_ACCESS_KEY/S3_SECRET_KEY/S3_BUCKET entries from `.env.example` to your ignored `apps/api/.env`. Stage 5 requires fresh dependency installation and lockfile review in Codespaces. Run `bash scripts/verify-production.sh` for the API/media smoke after installation. Export MP4 requires a local FFmpeg binary.
+
+Generation of new images, moving videos, composed music and voice-over remains a later, opt-in provider integration. No paid service is silently used and the imported author script is never silently rewritten.
+
 ## Stage 3 — web frontend (under review)
 
 New `apps/web` provides Russian-language login/registration, live API-backed projects dashboard, screenplay/scene navigator and metadata editing, plus a read-only graph overview. This is a **real frontend shell**, not yet the collaborative Tiptap editor. Source and verification steps are in [Stage 3 verification](docs/stage3-verification.md).
