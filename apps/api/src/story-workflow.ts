@@ -107,7 +107,7 @@ export function registerStoryWorkflowRoutes(app:FastifyInstance,access:(req:Fast
     ?node.metadata as Record<string,unknown>:{};
    const prod=(raw.production&&typeof raw.production==='object'&&!Array.isArray(raw.production))
     ?raw.production as Record<string,unknown>:{};
-   return db.node.update({where:{id},data:{metadata:{...raw,production:{...prod,order:index}}}});
+   return db.node.update({where:{id},data:{metadata:JSON.parse(JSON.stringify({...raw,production:{...prod,order:index}}))}});
   }));
   return {data:{sceneId,shotIds}};
  });
@@ -123,7 +123,7 @@ export function registerStoryWorkflowRoutes(app:FastifyInstance,access:(req:Fast
   const node=required(await db.node.findFirst({where:{sceneId,kind:'SCENE',projectId:scene.script.projectId}}));
   const prev=(node.metadata&&typeof node.metadata==='object'&&!Array.isArray(node.metadata))?node.metadata as Record<string,unknown>:{};
   const wf=(prev.workflow&&typeof prev.workflow==='object'&&!Array.isArray(prev.workflow))?prev.workflow as Record<string,unknown>:{};
-  await db.node.update({where:{id:node.id},data:{metadata:{...prev,workflow:{...wf,locationId}}}});
+  await db.node.update({where:{id:node.id},data:{metadata:JSON.parse(JSON.stringify({...prev,workflow:{...wf,locationId}}))}});
   return {data:{sceneId,locationId}};
  });
 }
