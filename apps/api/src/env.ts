@@ -7,7 +7,12 @@ const Env = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   WS_PORT: z.coerce.number().int().positive().default(3002),
   HOST: z.string().default('0.0.0.0'),
-  OLLAMA_URL: z.string().url().refine(v => /^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?\\/?$/i.test(v)).optional(),
+  OLLAMA_URL: z.string().url().refine(value => {
+    const target = new URL(value);
+    return ['localhost','127.0.0.1'].includes(target.hostname)
+      && ['http:','https:'].includes(target.protocol)
+      && !target.username && !target.password && (target.pathname === '/' || !target.pathname);
+  }).optional(),
   OLLAMA_MODEL: z.string().min(1).max(100).optional(),
   S3_ENDPOINT: z.string().url().optional(),
   S3_ACCESS_KEY: z.string().optional(),
