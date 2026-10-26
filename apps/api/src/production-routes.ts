@@ -119,9 +119,9 @@ export function registerProductionRoutes(
   const {sceneId}=z.object({sceneId:uuid}).parse(req.params);
   const scene=await getScene(sceneId);
   await access(req,scene.script.projectId,true);
+  if(!env.OLLAMA_URL||!env.OLLAMA_MODEL)throw new HttpError(503,'AI_NOT_CONFIGURED','Укажите OLLAMA_URL и OLLAMA_MODEL на сервере.');
   const limit=aiLimiter.check(req.ip);
   if(!limit.allowed)throw new HttpError(429,'AI_RATE_LIMIT','Подождите перед следующим запросом.');
-  if(!env.OLLAMA_URL||!env.OLLAMA_MODEL)throw new HttpError(503,'AI_NOT_CONFIGURED','Укажите OLLAMA_URL и OLLAMA_MODEL на сервере.');
   const state=await db.yDocState.findUnique({where:{documentName:'scene:'+sceneId}});
   const blocks=state?readBlocks(state.update):[];
   const source=blocks.map(b=>b.text).join('\\n').slice(0,10000);
