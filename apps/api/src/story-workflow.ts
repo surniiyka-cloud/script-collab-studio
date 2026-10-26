@@ -86,9 +86,30 @@ export function registerStoryWorkflowRoutes(app:FastifyInstance,access:(req:Fast
   const {projectId}=z.object({projectId:uuid}).parse(req.params);
   await access(req,projectId,true);
   const input=z.object({title:text,description:z.string().max(5000).optional()}).parse(req.body);
-  const existing=await db.node.findFirst({where:{projectId,kind:'LOCATION',title:input.title}});
+  const existing=await db.node.findFirst({where:{projectId,kind:'LOCATION',title:{equals:input.title,mode:'insensitive'}}});
   if(existing)return {data:existing};
   return {data:await db.node.create({data:{projectId,kind:'LOCATION',title:input.title,description:input.description}})};
+ });
+ app.put('/api/v1/scenes/:sceneId/workflow/shots/order',async req=>{
+  const {sceneId}=z.object({sceneId:uuid}).parse(req.params);
+  const {shotIds}=z.object({shotIds:z.array(uuid).min(1).max(100)}).parse(req.body);
+  const scene=required(await db.scene.findUnique({where:{id:sceneId},include:{script:true}}));
+  await access(req,scene.script.projectId,true);
+  const nodes=await db.node.findMany({where:{sceneId,kind:'SHOT',projectId:scene.script.projectId}});
+  const original=new Set(nodes.map(n=>n.id));
+  if(original.size!==shotIds.length||new Set(shotIds).size!==shotIds.length||
+   shotIds.some(id=>!original.has(id)))
+   throw new HttpError(400,'SHOT_ORDER_INVALID','Передайте все и только кадры этой сцены.');
+  const byId=new Map(nodes.map(node=>[node.id,node]));
+  await db.$transaction(shotIds.map((id,index)=>{
+   const node=byId.get(id)!;
+   const raw=(node.metadata&&typeof node.metadata==='object'&&!Array.isArray(node.metadata))
+    ?node.metadata as Record<string,unknown>:{};
+   const prod=(raw.production&&typeof raw.production==='object'&&!Array.isArray(raw.production))
+    ?raw.production as Record<string,unknown>:{};
+   return db.node.update({where:{id},data:{metadata:{...raw,production:{...prod,order:index}}}});
+  }));
+  return {data:{sceneId,shotIds}};
  });
  app.put('/api/v1/scenes/:sceneId/workflow/location',async req=>{
   const {sceneId}=z.object({sceneId:uuid}).parse(req.params);
