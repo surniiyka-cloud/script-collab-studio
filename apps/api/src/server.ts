@@ -8,6 +8,7 @@ import { HttpError, required } from './errors.js';
 import { edgeScope, membership, nodeScope, sceneScope, scriptScope } from './policy.js';
 import { FixedWindowLimiter } from './security.js';
 import { registerProductionRoutes } from './production-routes.js';
+import { registerMediaRoutes } from './production-media.js';
 
 const id = z.uuid();
 const params = z.object({ projectId: id });
@@ -270,5 +271,6 @@ export function makeApp() {
     return asData({ deleted: true });
   });
   registerProductionRoutes(app,role);
+  registerMediaRoutes(app,role,actor);
   return app;
 }
