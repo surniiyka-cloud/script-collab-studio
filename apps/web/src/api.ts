@@ -37,7 +37,7 @@ export type ProductionNode = {
  mediaLinks?:Array<{id:string;asset:Asset}>;
 };
 export type FilmTimeline = {script:{id:string;title:string};scenes:Array<{
- id:string;title:string;shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;metadata:unknown}>;
+ id:string;title:string;shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;metadata:unknown;media?:Array<{id:string;kind:string;mimeType:string;filename:string}>}>;
 }>};
 
 export type Session = { user: User; accessToken: string };
@@ -113,6 +113,8 @@ export const api = {
     request<ProductionNode>('/projects/'+encodeURIComponent(projectId)+'/production/characters','POST',token,{name}),
   shotDraft: (token:string,sceneId:string) =>
     request<{sceneId:string;shots:ShotDraft[];source:string;note:string}>('/scenes/'+encodeURIComponent(sceneId)+'/production/shot-draft','GET',token),
+  aiShotDraft: (token:string,sceneId:string) =>
+    request<{sceneId:string;shots:ShotDraft[];source:string;note:string}>('/scenes/'+encodeURIComponent(sceneId)+'/production/shot-draft/ai','POST',token,{}),
   approvedShots: (token:string,sceneId:string) =>
     request<ProductionNode[]>('/scenes/'+encodeURIComponent(sceneId)+'/production/shots','GET',token),
   approveShots: (token:string,sceneId:string,shots:ShotDraft[]) =>
