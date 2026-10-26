@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from './db.js';
 import { HttpError, required } from './errors.js';
 import { readBlocks } from './production-routes.js';
+import { inlineDialogue } from './screenplay-import.js';
 import type { Block } from './screenplay-import.js';
 const uuid=z.uuid();
 const text=z.string().trim().min(1).max(200);
@@ -18,7 +19,7 @@ function mediaLinks(node:{mediaLinks:Array<{asset:{id:string;kind:string;filenam
  return node.mediaLinks.map(item=>({id:item.asset.id,kind:item.asset.kind,
   filename:item.asset.filename,mimeType:item.asset.mimeType,sizeBytes:String(item.asset.sizeBytes)}));
 }
-function workflowMeta(metadata:unknown):{locationId?:string;order?:number}{
+function workflowMeta(metadata:unknown):{locationId?:string;locationHint?:string;timecode?:string;timeOfDay?:string;order?:number}{
  if(!metadata||typeof metadata!=='object'||Array.isArray(metadata))return {};
  const value=(metadata as {workflow?:unknown}).workflow;
  if(!value||typeof value!=='object'||Array.isArray(value))return {};
@@ -32,17 +33,25 @@ function shotOrder(metadata:unknown) {
  return typeof order==='number'?order:Number.MAX_SAFE_INTEGER;
 }
 function analyse(blocks:Block[]) {
- const dialogue:Array<{speaker:string;text:string;sourceLine:number}>=[];
+ const dialogue:Array<{speaker:string;text:string;sourceLine:number;delivery?:string}>=[];
  const actions:string[]=[];
  const characters=new Set<string>();
  let speaker:string|null=null;
  for(const block of blocks){
   const value=block.text.trim();
+  const inline=block.kind==='dialogue'?inlineDialogue(value):null;
   if(block.kind==='character'){
-   speaker=value.replace(/\s*\([^)]*\)\s*$/,'').trim();
+   speaker=value.replace(/\s*\([^)]*\)\s*$/,'').trim().toLocaleUpperCase('ru-RU');
    if(speaker)characters.add(speaker);
-  }else if(block.kind==='dialogue'&&speaker&&value){
-   dialogue.push({speaker,text:value,sourceLine:block.sourceLine});
+  }else if(block.kind==='dialogue'){
+   const who=block.speaker??inline?.speaker??speaker;
+   const spoken=block.dialogueText??inline?.dialogueText??value;
+   if(who&&spoken){
+    dialogue.push({speaker:who,text:spoken,sourceLine:block.sourceLine,
+     ...(block.delivery??inline?.delivery?{delivery:block.delivery??inline?.delivery}:{}),
+    });
+    if(!/^(?:ГОЛОС ЗА КАДРОМ|ЗАКАДРОВЫЙ ГОЛОС|NARRATOR|VOICEOVER)$/iu.test(who))characters.add(who);
+   }
   }else if(block.kind==='action'&&value){
    actions.push(value);
    speaker=null;
@@ -74,7 +83,9 @@ export function registerStoryWorkflowRoutes(app:FastifyInstance,access:(req:Fast
        shotType:n.shotType,durationMs:n.durationMs??3500,media:mediaLinks(n)}));
    return {id:scene.id,index:index+1,title:scene.title,synopsis:scene.synopsis,
      locationId:workflowMeta(sceneNode?.metadata).locationId??null,
-     suggestedLocation:locationFromHeading(scene.title),blocks,
+     suggestedLocation:workflowMeta(sceneNode?.metadata).locationHint??
+      locationFromHeading(scene.title),timecode:workflowMeta(sceneNode?.metadata).timecode??null,
+     timeOfDay:workflowMeta(sceneNode?.metadata).timeOfDay??null,blocks,
      actionDescription:extracted.actions.join('\n').slice(0,3500),
      dialogues:extracted.dialogue,characters:extracted.characters,shots};
   });
