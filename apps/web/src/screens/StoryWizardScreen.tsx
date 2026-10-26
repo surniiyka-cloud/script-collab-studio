@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { ChangeEvent, ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
- ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Clapperboard, FileImage, Film,
+ ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Clapperboard, FileImage,
  ImagePlus, Layers, MapPin, Plus, Quote, RefreshCw, Save, Upload, Users, X,
 } from 'lucide-react';
 import { api, isUnauthorized } from '../api';
@@ -59,9 +59,11 @@ function BulkPhotos({title,subjects,token,projectId,onUploaded}:{
  title:string;subjects:WorkflowSubject[];token:string;projectId:string;onUploaded:()=>Promise<void>;
 }){
  const [pending,setPending]=useState<PendingFile[]>([]);
+ const pendingRef=useRef<PendingFile[]>([]);
+ useEffect(()=>{pendingRef.current=pending;},[pending]);
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState('');
- useEffect(()=>()=>{for(const item of pending)URL.revokeObjectURL(item.url);},[]); // URLs are also revoked individually at removal
+ useEffect(()=>()=>{for(const item of pendingRef.current)URL.revokeObjectURL(item.url);},[]);
  function pick(event:ChangeEvent<HTMLInputElement>){
   const files=Array.from(event.target.files??[]).filter(f=>['image/jpeg','image/png','image/webp'].includes(f.type)&&f.size<=8*1024*1024);
   const invalid=(event.target.files?.length??0)-files.length;
