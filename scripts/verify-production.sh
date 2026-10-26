@@ -16,12 +16,21 @@ if [[ ! -f apps/api/.env ]]; then
   '
 fi
 
-docker compose up -d postgres minio
+docker compose up -d postgres objectstore
+# Wait for both services: Compose reports containers started before S3 is ready.
+for attempt in $(seq 1 60); do
+  if node -e 'fetch("http://127.0.0.1:9000/").then(r=>process.exit([200,400,403].includes(r.status)?0:1)).catch(()=>process.exit(1))'; then
+    break
+  fi
+  if [[ "$attempt" == "60" ]]; then echo "Local S3 object store did not become ready" >&2; exit 1; fi
+  sleep 1
+done
+
 pnpm --filter @studio/api db:migrate
 pnpm build
 pnpm test:logic
 
-# Run API with local demo MinIO configuration for this process only. No credentials are committed.
+# Run API with local demo S3 credentials for this process only. No credentials are committed.
 (
  cd apps/api
  S3_ENDPOINT=http://127.0.0.1:9000 \
