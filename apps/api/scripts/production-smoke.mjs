@@ -104,7 +104,47 @@ try{
  assert.ok(visual.locations.find(loc=>loc.id===office.id).media.some(m=>m.id===uploadedLocation.data.id));
  assert.ok(visual.characters.find(person=>person.id===character.id).media.some(m=>m.id===asset.id));
 
- console.log('PASS: script import, Yjs, shot approval, timeline, named character and private MinIO file.');
+ console.log('7/7 Chapter screenplay import: film worlds, actor speech and preserved source');
+ const chapters=[
+   'ПРОЛОГ. РЫБАЛКА',
+   ...['НАЗАД В БУДУЩЕЕ','ИВАН ВАСИЛЬЕВИЧ','МАТРИЦА','ТЕРМИНАТОР',
+    'ТРИ БОГАТЫРЯ','БРЕМЕНСКИЕ МУЗЫКАНТЫ','ВИННИ-ПУХ','ЧЕБУРАШКА',
+    'НУ ПОГОДИ','ПРОСТОКВАШИНО','БРАТ 2','ОСОБЕННОСТИ РЫБАЛКИ']
+     .map((name,i)=>String(i+1).padStart(2,'0')+'. '+name),
+   'ЭПИЛОГ. БАЙКАЛ',
+ ];
+ const fullText=['МИССИЯ 52','ПО ТУ СТОРОНУ ЭКРАНА',''];
+ chapters.forEach((chapter,i)=>{
+  fullText.push(chapter);
+  fullText.push(i===0?'00:00–00:50 · Тихий берег. Раннее утро':'00:50–01:32 · Площадь');
+  fullText.push('Герой оглядывается вокруг.');
+  fullText.push(i===0?'ВАДИМ ГЕОРГИЕВИЧ: Доброе утро.':'СА: Красота...');
+  fullText.push('ПЕРЕХОД: следующий эпизод.');
+ });
+ const chapterText=fullText.join('\n');
+ const chapterPreview=await call('/projects/'+projectId+'/production/import/preview','POST',{text:chapterText});
+ assert.equal(chapterPreview.scenes.length,14);
+ assert.equal(chapterPreview.scenes[0].timecode,'00:00–00:50');
+ assert.equal(chapterPreview.scenes[0].locationHint,'Тихий берег');
+ assert.ok(chapterPreview.characters.includes('ВАДИМ ГЕОРГИЕВИЧ'));
+ const importedFilm=await call('/projects/'+projectId+'/production/import/commit','POST',{
+  title:'Multi-chapter regression',text:chapterText,digest:chapterPreview.digest,
+ });
+ const storedSource=await db.yDocState.findUnique({
+  where:{documentName:'script:'+importedFilm.scriptId+':source'},
+ });
+ assert.ok(storedSource,'Complete document is stored beyond the scene splits');
+ const original=new Y.Doc();Y.applyUpdate(original,storedSource.update);
+ assert.equal(original.getXmlFragment('source').toString().replace(/<[^>]*>/g,''),chapterText);
+ original.destroy();
+ const film=await call('/projects/'+projectId+'/workflow/story?scriptId='+importedFilm.scriptId);
+ assert.equal(film.scenes.length,14);
+ assert.equal(film.scenes[0].timecode,'00:00–00:50');
+ assert.equal(film.scenes[0].suggestedLocation,'Тихий берег');
+ assert.equal(film.scenes[0].dialogues[0].speaker,'ВАДИМ ГЕОРГИЕВИЧ');
+ assert.equal(film.scenes[0].dialogues[0].text,'Доброе утро.');
+ assert.ok(film.locations.some(location=>location.title==='Тихий берег'));
+ console.log('PASS: script import, Yjs, shot approval, timeline, named character and private S3 files, chapter parsing and lossless original.');
 } finally{
  if(projectId){try{await db.project.delete({where:{id:projectId}});}catch(e){console.warn('Temporary project cleanup failed',String(e));}}
  if(userId){try{await db.user.delete({where:{id:userId}});}catch(e){console.warn('Temporary user cleanup failed',String(e));}}
