@@ -38,7 +38,7 @@ function readBlocks(state:Uint8Array):Block[]{
   return fragment.toArray().flatMap((item,index)=>{
    if(!(item instanceof Y.XmlElement))return [];
    const raw=item.toArray().map(t=>t instanceof Y.XmlText?t.toDelta().map(d=>String(d.insert)).join(''):'').join('');
-   const kind=item.getAttribute('kind');
+   const kind=String(item.getAttribute('kind')??'');
    const allowed=['heading','action','character','dialogue','parenthetical','transition'];
    return [{kind:(allowed.includes(kind)?kind:'action') as Block['kind'],text:raw,sourceLine:index+1}];
   });
