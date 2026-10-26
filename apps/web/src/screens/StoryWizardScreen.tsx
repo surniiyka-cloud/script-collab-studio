@@ -22,7 +22,7 @@ const steps=[
  {title:'Карта истории',sub:'Всё по порядку',icon:Layers},
 ] as const;
 type Stage=0|1|2|3|4;
-type Line={speaker:string;text:string};
+type Line={speaker:string;text:string;delivery?:string};
 function dialogues(blocks:ImportBlock[]):Line[]{
  const found:Line[]=[];let speaker='';
  for(const block of blocks){
@@ -31,7 +31,7 @@ function dialogues(blocks:ImportBlock[]):Line[]{
   else if(block.kind==='dialogue'){
    const detected=block.speaker||text.match(/^([А-ЯЁA-Z][А-ЯЁA-Z\s-]+)(?:\s*\([^)]*\))?\s*:/u)?.[1];
    const spoken=block.dialogueText??(detected?text.replace(/^.*?:\s*/, ''):text);
-   if((detected||speaker)&&spoken)found.push({speaker:detected||speaker,text:spoken});
+   if((detected||speaker)&&spoken)found.push({speaker:detected||speaker,text:spoken,delivery:block.delivery});
   }else if(block.kind==='action'||block.kind==='heading'||block.kind==='transition')speaker='';
  }
  return found;
@@ -315,7 +315,7 @@ export function StoryWizardScreen(){
          {scene.locationHint&&<div className="wizard-detected-location"><MapPin size={13}/>{scene.locationHint}{scene.timeOfDay?' · '+scene.timeOfDay:''}</div>}
          <p>{scene.blocks.filter(b=>b.kind==='action'&&b.text.trim()).slice(0,2).map(b=>b.text).join(' ').slice(0,240)||'Описание места отсутствует в сценарии'}</p>
          {!!dialogues(scene.blocks).length&&<small className="wizard-dialogue-count">РЕПЛИКИ: {dialogues(scene.blocks).length} · ГОВОРЯТ: {[...new Set(dialogues(scene.blocks).map(d=>d.speaker))].join(', ')}</small>}
-         {dialogues(scene.blocks).slice(0,3).map((line,j)=><div key={j} className="wizard-dialogue-mini"><b>{line.speaker}</b> {line.text}</div>)}
+         {dialogues(scene.blocks).slice(0,3).map((line,j)=><div key={j} className="wizard-dialogue-mini"><b>{line.speaker}{line.delivery?' ('+line.delivery+')':''}</b> {line.text}</div>)}
          <details className="wizard-scene-details">
           <summary>Весь разбор сцены: действия и реплики</summary>
           <div className="wizard-scene-details-content">
@@ -393,7 +393,7 @@ export function StoryWizardScreen(){
         <p>{currentScene.actionDescription||'В исходном сценарии нет отдельного описания действия.'}</p>
         <span className="wizard-context-label"><Quote size={14}/> Реплики</span>
         <div className="wizard-context-dialogues">{currentScene.dialogues.map((line,i)=><div key={i}>
-          <strong>{line.speaker}</strong><p>{line.text}</p></div>)}
+          <strong>{line.speaker}{line.delivery?' ('+line.delivery+')':''}</strong><p>{line.text}</p></div>)}
           {!currentScene.dialogues.length&&<p>Диалоги не обнаружены.</p>}
         </div>
        </aside>
@@ -525,7 +525,7 @@ function StoryBoard({scene,story,token,onEdit}:{
     </div>
     <div><span className="wizard-context-label"><Quote size={14}/> ДЕЙСТВИЯ И РЕПЛИКИ</span>
      <p className="wizard-story-action">{scene.actionDescription||'Описание действий отсутствует в сценарии.'}</p>
-     <div className="wizard-story-quotes">{scene.dialogues.map((line,i)=><div key={i}><strong>{line.speaker}</strong><p>{line.text}</p></div>)}</div>
+     <div className="wizard-story-quotes">{scene.dialogues.map((line,i)=><div key={i}><strong>{line.speaker}{line.delivery?' ('+line.delivery+')':''}</strong><p>{line.text}</p></div>)}</div>
     </div>
    </div>
    <div className="wizard-story-shots-header"><Clapperboard size={15}/> ПОСЛЕДОВАТЕЛЬНОСТЬ КАДРОВ <span>{scene.shots.length}</span></div>
