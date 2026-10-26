@@ -27,6 +27,18 @@ API: `http://localhost:3001/api/v1` · WebSocket: `ws://localhost:3002`. `docker
 
 **Important:** Stage 2 has not yet produced an initial checked-in Prisma migration, because the package registry/Prisma CLI could not be reached in the current environment. Run `pnpm --filter @studio/api db:migrate` against development Postgres. Never run `migrate dev` on a production database.
 
+## One-command backend verification (after installing Docker and Node.js 22+)
+
+From a Codespace or local shell on the feature branch:
+
+```bash
+bash scripts/verify-backend.sh
+```
+
+This development-only script installs dependencies, creates an ignored local `.env` with a random JWT secret if missing, starts PostgreSQL, runs Prisma migrations, builds, runs the dependency-free tests, launches the API and sends a real HTTP smoke test for registration, access control, scenes, nodes and edges. It creates **temporary test users** in the local DB and deletes its test project. It does **not** verify multi-user WebSocket collaboration, and must **never** point at production data. No API keys are required.
+
+If it passes, review/commit the generated `pnpm-lock.yaml` and Prisma migration in the feature branch before marking PR #2 ready. Do not send the `.env` file or JWT token to anyone.
+
 ## Available Stage 2 endpoints
 
 | Method | Path | Capability |

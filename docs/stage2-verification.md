@@ -2,6 +2,13 @@
 
 **Status:** implementation draft; not yet verified as runnable.
 
+## One-command external integration gate (prepared, NOT run here)
+
+- `bash scripts/verify-backend.sh` will install dependencies, run Prisma migrations, build, start Fastify against disposable development Postgres, and execute `scripts/smoke-backend.mjs`.
+- The smoke script covers register, auth, project/script/scenes, automatically generated nodes, typed edges, cycle rejection and project isolation.
+- The script itself passed `bash -n` and `node --check`, but its **HTTP assertions have NOT run** because npm registry and Docker are unavailable here.
+- Generated migration and lockfile must be reviewed and committed before releasing this draft PR.
+
 ## Checks performed
 - `node --experimental-strip-types --test apps/api/tests/graph.test.ts apps/api/tests/security.test.ts`: **5 passed, 0 failed** after the security follow-up (graph cycles, auth throttling, role write checks). Tests run without npm dependencies.
 - Fastify registration/login throttle now uses bounded, in-process fixed windows (12 login attempts/minute and 6 registration attempts/minute, per socket IP); exceeded attempts produce HTTP 429 and `Retry-After`.
