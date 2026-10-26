@@ -48,6 +48,13 @@ try{
  assert.equal(board.scenes[0].dialogues[0].text,'Доброе утро!');
  assert.equal(board.scenes[1].actionDescription,'Вода спокойная.');
  assert.equal(board.scenes[0].shots.length,drafted.shots.length);
+ const beforeOrder=board.scenes[0].shots.map(shot=>shot.id);
+ const afterOrder=[...beforeOrder].reverse();
+ await call('/scenes/'+first+'/workflow/shots/order','PUT',{shotIds:afterOrder});
+ board=await call('/projects/'+projectId+'/workflow/story?scriptId='+imported.scriptId);
+ assert.deepEqual(board.scenes[0].shots.map(shot=>shot.id),afterOrder,
+  'Visual storyboard must reflect the exact confirmed frame sequence');
+
  const office=board.locations.find(location=>location.title==='ОФИС');
  const lake=board.locations.find(location=>location.title==='ОЗЕРО');
  assert.ok(office && lake,'Both locations should be discovered automatically');
