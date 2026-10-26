@@ -20,10 +20,10 @@ export type GraphNode = { id: string; title: string; kind: string; sceneId: stri
 export type GraphEdge = { id: string; sourceNodeId: string; targetNodeId: string; kind: string };
 export type Graph = { nodes: GraphNode[]; edges: GraphEdge[] };
 
-export type ImportBlock = { kind: 'heading'|'action'|'character'|'dialogue'|'parenthetical'|'transition'; text:string; sourceLine:number };
+export type ImportBlock = { kind: 'heading'|'action'|'character'|'dialogue'|'parenthetical'|'transition'; text:string; sourceLine:number; speaker?:string;dialogueText?:string;delivery?:string };
 export type ImportPreview = {
- digest:string; length:number; characters:string[]; warnings:string[];
- scenes:Array<{title:string;sourceLineStart:number;blocks:ImportBlock[]}>;
+ digest:string; length:number; characters:string[]; warnings:string[];frontMatter:ImportBlock[];
+ scenes:Array<{title:string;sourceLineStart:number;blocks:ImportBlock[];timecode:string|null;locationHint:string|null;timeOfDay:string|null}>;
 };
 export type ImportCommit = {scriptId:string;scenes:Array<{id:string;title:string}>;characters:string[]};
 export type ShotDraft = {
@@ -48,7 +48,7 @@ export type WorkflowMedia = {id:string;kind:string;filename:string;mimeType:stri
 export type WorkflowSubject = {id:string;title:string;description:string|null;media:WorkflowMedia[]};
 export type WorkflowScene = {
  id:string;index:number;title:string;synopsis:string|null;locationId:string|null;
- suggestedLocation:string|null;blocks:ImportBlock[];actionDescription:string;
+ suggestedLocation:string|null;timecode:string|null;timeOfDay:string|null;blocks:ImportBlock[];actionDescription:string;
  characters:string[];dialogues:Array<{speaker:string;text:string;sourceLine:number}>;
  shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;media:WorkflowMedia[]}>;
 };
