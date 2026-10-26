@@ -129,6 +129,18 @@ export const api = {
     if(!reply.ok||!json.data)throw new ApiError(reply.status,'MEDIA_UPLOAD_FAILED',json.error?.message||'Не удалось загрузить файл.');
     return json.data;
   },
+  exportAnimatic: async (token:string,projectId:string,scriptId:string):Promise<Blob> => {
+    const response=await fetch('/api/v1/projects/'+encodeURIComponent(projectId)+'/production/render',{
+      method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({scriptId}),
+    });
+    if(!response.ok){
+      let message='Не удалось собрать MP4.';
+      try{const data=await response.json() as {error?:{message?:string}};message=data.error?.message??message;}catch{}
+      throw new ApiError(response.status,'RENDER_FAILED',message);
+    }
+    return response.blob();
+  },
   mediaBlob: async (token:string,mediaId:string):Promise<Blob> => {
     const reply=await fetch('/api/v1/media/'+encodeURIComponent(mediaId)+'/file',{headers:{Authorization:'Bearer '+token}});
     if(!reply.ok)throw new ApiError(reply.status,'MEDIA_READ_FAILED','Не удалось получить файл.');
