@@ -33,8 +33,6 @@ export function registerProductionRenderRoutes(
   const {projectId}=z.object({projectId:uuid}).parse(req.params);
   await access(req,projectId,true);
   const {scriptId}=z.object({scriptId:uuid}).parse(req.body);
-  const decision=jobs.check(req.ip);
-  if(!decision.allowed)throw new HttpError(429,'RENDER_LIMIT','Попробуйте собрать видео немного позже.');
   const script=required(await db.script.findUnique({where:{id:scriptId}}));
   if(script.projectId!==projectId)throw new HttpError(404,'NOT_FOUND','Сценарий не входит в проект.');
   const scenes=await db.scene.findMany({where:{scriptId},orderBy:[{act:{sortKey:'asc'}},{sortKey:'asc'}]});
@@ -48,6 +46,8 @@ export function registerProductionRenderRoutes(
    if(!shot.mediaLinks.some(link=>link.asset.kind==='IMAGE'))
     throw new HttpError(409,'IMAGE_REQUIRED','Для MP4 загрузите изображение к каждому кадру. Не хватает: '+shot.title);
   }
+  const decision=jobs.check(req.ip);
+  if(!decision.allowed)throw new HttpError(429,'RENDER_LIMIT','Попробуйте собрать видео немного позже.');
   const work=await mkdtemp(join(tmpdir(),'studio-render-'));
   try{
    const clips:string[]=[];
