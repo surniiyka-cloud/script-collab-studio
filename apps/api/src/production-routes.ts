@@ -99,7 +99,10 @@ export function registerProductionRoutes(
      locationId=locations.get(normalized);
      if(!locationId){
       const found=await tx.node.findFirst({where:{projectId,kind:'LOCATION',title:{equals:place,mode:'insensitive'}}});
-      locationId=found?.id??(await tx.node.create({data:{projectId,kind:'LOCATION',title:place}})).id;
+      const authorDescription=sceneInput.blocks.filter(block=>block.kind==='action'&&block.text.trim())
+       .map(block=>block.text.trim()).join(' ').slice(0,1000);
+      locationId=found?.id??(await tx.node.create({data:{projectId,kind:'LOCATION',title:place,
+       description:authorDescription||undefined}})).id;
       locations.set(normalized,locationId);
      }
     }
