@@ -124,8 +124,17 @@ function EditorSurface({ displayName, userId }: { displayName: string; userId: s
 
   const extensions = useMemo(() => [
     StarterKit.configure({
+      // A screenplay has one dedicated textblock instead of StarterKit's paragraph.
+      // ListItem's default schema requires "paragraph", so disable all list nodes
+      // to avoid a ProseMirror schema error when mounting the editor in the browser.
       paragraph: false,
       heading: false,
+      bulletList: false,
+      orderedList: false,
+      listItem: false,
+      blockquote: false,
+      codeBlock: false,
+      horizontalRule: false,
       undoRedo: false,
     }),
     ScreenplayBlock,
