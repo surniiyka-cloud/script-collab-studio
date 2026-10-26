@@ -215,7 +215,7 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
       {!storyFrames.length?<p className="production-empty">Чтобы собрать превиз, сначала утвердите покадровку хотя бы одной сцены.</p>:<>
        <div className="film-preview" aria-label="Предпросмотр кадров">
         <span className="film-preview-counter">КАДР {frame+1} / {storyFrames.length}</span>
-        <ShotPreview token={token} shot={storyFrames[frame]}/>
+        <ShotPreview key={storyFrames[frame].id} token={token} shot={storyFrames[frame]} playing={playing}/>
         <div className="film-preview-caption"><span>{storyFrames[frame]?.sceneTitle}</span><strong>{storyFrames[frame]?.title}</strong><p>{storyFrames[frame]?.description}</p></div>
        </div>
        <div className="film-transport">
@@ -243,7 +243,7 @@ function AssetView({token,asset}:{token:string;asset:Asset}){
   ?<audio controls src={url} aria-label={asset.filename}/>
   :<img src={url} alt={asset.filename} loading="lazy"/>}</div>;
 }
-function ShotPreview({token,shot}:{token:string;shot:{title:string;description:string|null;media?:Array<{id:string;kind:string;filename:string;mimeType:string}>}}){
+function ShotPreview({token,shot,playing}:{token:string;playing:boolean;shot:{title:string;description:string|null;media?:Array<{id:string;kind:string;filename:string;mimeType:string}>}}){
  const image=shot.media?.find(x=>x.kind==='IMAGE');
  const [url,setUrl]=useState<string|null>(null);
  useEffect(()=>{
@@ -251,6 +251,19 @@ function ShotPreview({token,shot}:{token:string;shot:{title:string;description:s
   if(image)void api.mediaBlob(token,image.id).then(blob=>{if(alive){created=URL.createObjectURL(blob);setUrl(created);}}).catch(()=>{});
   return ()=>{alive=false;if(created)URL.revokeObjectURL(created);};
  },[image?.id,token]);
- return url?<img className="film-preview-image" src={url} alt={shot.title}/>:
-   <div className="film-preview-empty"><Clapperboard size={49}/><span>Добавьте изображение кадра, чтобы увидеть его здесь</span></div>;
+ const soundtrack=shot.media?.find(x=>x.kind==='AUDIO');
+ return <><div className="film-preview-art">{url
+   ?<img className="film-preview-image" src={url} alt={shot.title}/>
+   :<div className="film-preview-empty"><Clapperboard size={49}/><span>Добавьте изображение кадра, чтобы увидеть его здесь</span></div>}</div>
+   {soundtrack&&<div className="film-preview-audio"><Music size={16}/><AssetAudio token={token} id={soundtrack.id}
+     filename={soundtrack.filename} playing={playing}/></div>}</>;
+}
+function AssetAudio({token,id,filename,playing}:{token:string;id:string;filename:string;playing:boolean}){
+ const [url,setUrl]=useState<string|null>(null);
+ useEffect(()=>{
+  let alive=true;let created:string|null=null;
+  void api.mediaBlob(token,id).then(blob=>{if(alive){created=URL.createObjectURL(blob);setUrl(created);}}).catch(()=>{});
+  return ()=>{alive=false;if(created)URL.revokeObjectURL(created);};
+ },[token,id]);
+ return url?<audio key={id} controls autoPlay={playing} preload="metadata" src={url} aria-label={filename}/>:<span>Загружаем звук…</span>;
 }
