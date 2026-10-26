@@ -19,11 +19,11 @@ export async function readScreenplayFile(file:File):Promise<{text:string;warning
  const pdfjs=await import('pdfjs-dist');
  const worker=await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
  pdfjs.GlobalWorkerOptions.workerSrc=worker.default;
- const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false});
- const document=await task.promise;
- if(document.numPages>250)throw Error('В одном документе поддерживается не более 250 страниц.');
+ const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer())});
  const lines:string[]=[];
  try{
+  const document=await task.promise;
+  if(document.numPages>250)throw Error('В одном документе поддерживается не более 250 страниц.');
   for(let page=1;page<=document.numPages;page++){
    const content=await (await document.getPage(page)).getTextContent();
    let current='';
@@ -36,6 +36,6 @@ export async function readScreenplayFile(file:File):Promise<{text:string;warning
    if(current)lines.push(current);
    if(page<document.numPages)lines.push('');
   }
- }finally{await document.destroy();}
+ }finally{await task.destroy();}
  return {text:lines.join('\n'),warning:'PDF извлечён без OCR. Обязательно проверьте порядок сцен, строк и диалогов — сложная вёрстка может нарушить их.'};
 }
