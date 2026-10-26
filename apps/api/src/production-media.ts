@@ -67,13 +67,13 @@ export function registerMediaRoutes(
   const {projectId,nodeId}=z.object({projectId:uuid,nodeId:uuid}).parse(req.params);
   await access(req,projectId,true);
   const node=required(await db.node.findUnique({where:{id:nodeId}}));
-  if(node.projectId!==projectId||!['CHARACTER','SHOT'].includes(node.kind))
+  if(node.projectId!==projectId||!['CHARACTER','SHOT','LOCATION'].includes(node.kind))
    throw new HttpError(404,'NOT_FOUND','Character or shot node not found');
   const mime=String(req.headers['content-type']||'').split(';',1)[0].toLowerCase();
   const bytes=req.body;
   if(!Buffer.isBuffer(bytes)||!validFile(bytes,mime))throw new HttpError(400,'UNSUPPORTED_MEDIA','Только проверенные JPEG, PNG, WebP, MP3 или WAV.');
   if(bytes.length>8*1024*1024)throw new HttpError(413,'MEDIA_TOO_LARGE','Максимальный размер файла — 8 МБ');
-  if(node.kind==='CHARACTER'&&!mime.startsWith('image/'))throw new HttpError(400,'IMAGE_REQUIRED','Референс персонажа должен быть изображением');
+  if(['CHARACTER','LOCATION'].includes(node.kind)&&!mime.startsWith('image/'))throw new HttpError(400,'IMAGE_REQUIRED','Референс персонажа должен быть изображением');
   let filename='reference';
   try{filename=decodeURIComponent(String(req.headers['x-file-name']||'reference')).replace(/[\\/]/g,'_').slice(0,160);}
   catch{throw new HttpError(400,'INVALID_FILENAME','Некорректное имя файла.');}
