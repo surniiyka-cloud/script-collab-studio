@@ -313,7 +313,9 @@ export function StoryWizardScreen(){
        </>}
       </div>
      </div>
-     {story&&<p className="wizard-helper">В проекте уже есть сценарий «{story.script.title}» и {story.scenes.length} сцен. Можно перейти к следующему шагу, не загружая сценарий повторно.</p>}
+     {story&&<div className="wizard-existing-script"><span>В проекте уже есть сценарий «{story.script.title}» · {story.scenes.length} сцен. Повторная загрузка не нужна.</span>
+       <button className="wizard-primary" onClick={next}>Продолжить с этим сценарием <ArrowRight size={17}/></button>
+      </div>}
     </section>}
     {step===1&&<section className="wizard-workspace">
      <StageTitle index={2} title="Кто играет в истории?" description="Персонажи определены по репликам. Загрузи сразу все фотографии, а затем внутри сайта присвой каждому изображению имя. Можно прикреплять несколько референсов к одному герою."/>
@@ -347,7 +349,7 @@ export function StoryWizardScreen(){
         <p>{scene.actionDescription.slice(0,180)||'Описание отсутствует в оригинальном тексте'}</p></div>
        <select value={scene.locationId??''} disabled={busy} aria-label={'Локация сцены '+scene.title} onChange={e=>void assignLocation(scene.id,e.target.value)}>
         <option value="">Не определена</option>
-        {story.locations.map(loc=><option key={loc.id} value={loc.id}>{loc.title}</option>)}
+        {(story?.locations??[]).map(loc=><option key={loc.id} value={loc.id}>{loc.title}</option>)}
        </select>
       </div>)}
      </div>
