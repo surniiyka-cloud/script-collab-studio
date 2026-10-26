@@ -14,6 +14,15 @@ const Env = z.object({
       && !target.username && !target.password && (target.pathname === '/' || !target.pathname);
   }).optional(),
   OLLAMA_MODEL: z.string().min(1).max(100).optional(),
+  // Only loopback hosts: never accept arbitrary remote URL from a user's request.
+  COMFYUI_URL: z.string().url().refine(value => {
+    const target = new URL(value);
+    return ['localhost','127.0.0.1'].includes(target.hostname)
+      && ['http:','https:'].includes(target.protocol)
+      && !target.username && !target.password
+      && (target.pathname === '/' || !target.pathname);
+  }).optional(),
+  COMFYUI_CHECKPOINT: z.string().min(1).max(180).regex(/^[\w.\- /()]+$/).optional(),
   S3_ENDPOINT: z.string().url().optional(),
   S3_ACCESS_KEY: z.string().optional(),
   S3_SECRET_KEY: z.string().optional(),
