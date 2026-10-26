@@ -25,7 +25,7 @@ pnpm dev
 
 API: `http://localhost:3001/api/v1` · WebSocket: `ws://localhost:3002`. `docker-compose.yml` starts **only infrastructure** (Postgres and MinIO); API starts with `pnpm dev`. Production database migration should use `db:deploy` after migration scripts are generated/reviewed.
 
-**Important:** In Codespaces, `prisma migrate dev` completed successfully and the graph/Yjs smoke tests passed, but the generated migration folder and `pnpm-lock.yaml` are still untracked locally, not committed to the feature branch. Review and commit them before merging the backend PR. Never run `migrate dev` against a production database.
+**Important:** In Codespaces, `prisma migrate dev`, `prisma validate`, the backend build, HTTP smoke and the first multiuser Yjs smoke passed. The initial Prisma migration and `pnpm-lock.yaml` were subsequently pushed to the feature branch in commit `1ef26a4`. The newer fresh-DB migration replay and WebSocket Viewer/outsider authorization tests have not yet been run. Never run `migrate dev` against a production database.
 
 ## One-command backend verification (after installing Docker and Node.js 22+)
 
@@ -37,7 +37,7 @@ bash scripts/verify-backend.sh
 
 This development-only script installs dependencies, creates an ignored local `.env` with a random JWT secret if missing, starts PostgreSQL, runs Prisma migrations, builds, runs the dependency-free tests, launches the API and sends a real HTTP smoke test for registration, access control, scenes, nodes and edges. It creates **temporary test users** in the local DB and deletes its test project. It does **not** verify multi-user WebSocket collaboration, and must **never** point at production data. No API keys are required.
 
-**Verified in Codespaces on 2026-10-26 (original test):** `pnpm build` passed, logic tests passed (5/5), PostgreSQL and Hocuspocus started, and HTTP smoke passed (8/8). **Verified in the second Codespaces run:** the verification script also passed the two-user Hocuspocus/Yjs persistence test using `@hocuspocus/provider` (dev-only dependency), **3/3 checks passed**: mutual synchronization, persisted PostgreSQL binary state, and a third client's read of the merged text. See [Stage 2 verification](docs/stage2-verification.md). Review and commit generated `pnpm-lock.yaml` and Prisma migrations before marking PR #2 ready. Do not send the `.env` file or JWT token to anyone.
+**Verified in Codespaces on 2026-10-26 (original test):** `pnpm build` passed, logic tests passed (5/5), PostgreSQL and Hocuspocus started, and HTTP smoke passed (8/8). **Verified in Codespaces:** the two-user Hocuspocus/Yjs persistence test passed **3/3**: mutual synchronization, persisted PostgreSQL binary state, and a third client's read of the merged text. **Added since that run:** the verification script now also checks replay of the committed SQL migration against a new throwaway database and tests unaffiliated WebSocket rejection/Viewer read-only rights; these new checks are pending execution. See [Stage 2 verification](docs/stage2-verification.md). Review and commit generated `pnpm-lock.yaml` and Prisma migrations before marking PR #2 ready. Do not send the `.env` file or JWT token to anyone.
 
 ## Available Stage 2 endpoints
 
@@ -81,6 +81,6 @@ Connect to WebSocket `ws://localhost:3002` with a HocuspocusProvider (`token: <J
 
 ## Testing and known limits
 
-Codespaces verified `pnpm build` and five logic tests, plus a database-backed HTTP smoke test (8/8). The real-time Hocuspocus/Yjs integration test now also **passed 3/3** in Codespaces, including two connected editors and a fresh third connection. Still pending: committing the migration and pnpm lockfile, fresh-database replay, Viewer permissions in live WS, restart persistence, and end-to-end UI. **Do not assume production readiness.**
+Codespaces verified `pnpm build` and five logic tests, plus a database-backed HTTP smoke test (8/8). The real-time Hocuspocus/Yjs integration test now also **passed 3/3** in Codespaces, including two connected editors and a fresh third connection. Pending: execute the new fresh-database replay and Viewer/outsider WS tests; validate server-restart persistence and later production hardening. The migration and pnpm lockfile are committed. **Do not assume production readiness.**
 
 No secrets are committed: `.env.example` contains local placeholders only. Media uploads and AI endpoints will be added in later stages.
