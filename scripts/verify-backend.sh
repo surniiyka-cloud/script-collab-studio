@@ -37,4 +37,5 @@ for _ in $(seq 1 40); do
   sleep 1
 done
 node scripts/smoke-backend.mjs
-printf '\nAll local verification gates passed. Review the generated Prisma migration and pnpm-lock.yaml before committing.\n'
+pnpm --filter @studio/api test:collab
+printf '\nHTTP and Yjs WebSocket verification passed. Review and commit pnpm-lock.yaml and the Prisma migration before merging.\n'
