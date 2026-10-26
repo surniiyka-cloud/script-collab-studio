@@ -11,14 +11,18 @@ services:
       test: ["CMD-SHELL", "pg_isready -U studio -d studio"]
       interval: 3s
       retries: 10
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ':9001'
+  # SeaweedFS mini provides a private S3-compatible endpoint for local media.
+  # MinIO's upstream Docker images were withdrawn; avoid untrusted image mirrors.
+  objectstore:
+    image: chrislusf/seaweedfs:latest
     environment:
-      MINIO_ROOT_USER: localstudio
-      MINIO_ROOT_PASSWORD: localstudio_dev_only
-    ports: ["9000:9000", "9001:9001"]
-    volumes: ["minio_data:/data"]
+      AWS_ACCESS_KEY_ID: localstudio
+      AWS_SECRET_ACCESS_KEY: localstudio_dev_only
+      S3_BUCKET: studio-media
+    ports:
+      - "127.0.0.1:9000:8333"
+    volumes:
+      - objectstore_data:/data
 volumes:
   postgres_data:
-  minio_data:
+  objectstore_data:
