@@ -1,6 +1,6 @@
 # Stage 2 verification — 2026-10-26
 
-**Status:** Full Codespaces build, 5 logic tests, 8/8 database-backed HTTP checks and **3/3 real two-client Yjs WebSocket/persistence checks passed** on `chatgpt/feature-backend-skeleton`. **Stage 2 PR stays draft** pending committed migration/lockfile and fresh-database migration replay. This is not a production-readiness declaration.
+**Status:** Codespaces build, Prisma validation, 5 logic tests, 8/8 database-backed HTTP checks, and **3/3 two-editor Yjs WebSocket/persistence checks passed**. Initial Prisma migration and pnpm lockfile are **committed and verified in GitHub** (commit `1ef26a4`). PR #2 remains draft while the new **fresh-DB migration replay** and **Viewer/outsider WebSocket access tests** await execution. This is not a production-readiness declaration.
 
 ## Observed Codespaces results (user-supplied terminal output)
 
@@ -21,7 +21,7 @@ Executed: `bash scripts/verify-backend.sh` in a GitHub Codespace on the feature 
 
 The observed HTTP 409 from rejecting a cycle and 404 for an unrelated account are **expected policy outcomes**. The script reported: `PASS: HTTP backend smoke (auth, project, script, scenes, nodes, edge, cycle, membership, deletion).`
 
-**Second Codespaces run:** After `git pull --ff-only`, running the updated `bash scripts/verify-backend.sh` again also passed all 5 logic checks, 8 HTTP smoke steps and the newly added 3 WebSocket collaboration steps. The test printed `PASS: Two-user Hocuspocus/Yjs roundtrip + PostgreSQL binary-state persistence.` The terminal showed these untracked files: `apps/api/prisma/migrations/`, `pnpm-lock.yaml`, and `package-lock.json`. The Prisma migration and pnpm lockfile are needed in Git; the npm lockfile is not (pnpm is the chosen package manager).
+**Second Codespaces run:** After `git pull --ff-only`, running the updated `bash scripts/verify-backend.sh` again also passed all 5 logic checks, 8 HTTP smoke steps and the newly added 3 WebSocket collaboration steps. The test printed `PASS: Two-user Hocuspocus/Yjs roundtrip + PostgreSQL binary-state persistence.` The terminal initially showed untracked `apps/api/prisma/migrations/`, `pnpm-lock.yaml`, and `package-lock.json`; the user subsequently validated Prisma successfully, committed only the migration and pnpm lockfile, and pushed commit `1ef26a4` to the feature branch. GitHub file readback verified both. `package-lock.json` is ignored in the pnpm monorepo.
 
 **Warning:** pnpm reported ignored postinstall scripts for `@prisma/engines`, `argon2`, `esbuild` and `prisma`. These did **not** block the observed build or smoke test. Do not approve arbitrary new dependency scripts without review. A clean-environment reproducibility check is advisable once the lockfile is committed.
 
@@ -42,9 +42,11 @@ The observed HTTP 409 from rejecting a cycle and 404 for an unrelated account ar
 
 ## Still to complete before marking the backend stage finished
 
-- [ ] Review and commit `pnpm-lock.yaml` and `apps/api/prisma/migrations/` on the **feature** branch. Their presence as untracked Codespaces files does not make them part of the GitHub PR. Do not commit `package-lock.json` or `.env`.
+- [x] Review and commit `pnpm-lock.yaml` and `apps/api/prisma/migrations/` on the feature branch; GitHub readback confirms commit `1ef26a4`. Do not commit `package-lock.json` or `.env`.
 - [x] Run an **actual Yjs WebSocket integration test** for two authorized writers, merged state persisted in PostgreSQL, and a third synchronized connection. **Still pending:** Viewer read-only, denied cross-project access, and restart durability.
-- [ ] Run `pnpm --filter @studio/api exec prisma validate` and verify a clean test database initializes from the checked-in migration. Prisma `migrate dev` passed against the existing Codespaces database.
+- [x] `pnpm --filter @studio/api exec prisma validate` passed: `The schema at prisma/schema.prisma is valid`.
+- [ ] **New test (not executed):** `scripts/verify-fresh-db.sh` creates a random temporary database *inside the local Compose PostgreSQL*, calls `prisma migrate deploy` and `prisma migrate status` with its temporary `DATABASE_URL`, verifies seven core tables, and drops only that temporary database on exit.
+- [ ] **New test (not executed):** extended `apps/api/scripts/collab-smoke.mjs` tests a rejected unaffiliated WebSocket token and Viewer read-only enforcement (no edits propagate to writers or persisted state).
 - [ ] Review any new untracked files before staging; do not commit `.env`, tokens, or keys.
 - [ ] Stage 1 PR #1 remains open; backend draft PR #2 is stacked on the architecture branch and must be reviewed in that order.
 
@@ -67,4 +69,4 @@ git status --short
 find apps/api/prisma/migrations -type f
 ```
 
-The script starts local infrastructure and temporary test records. Do not point it at production databases.
+The script starts local infrastructure and temporary test records. It now also runs `scripts/verify-fresh-db.sh` and the expanded Hocuspocus authorization tests; **these additions have not yet run in Codespaces**. The fresh-DB script provisions and drops only a randomly named test database on the local Docker Compose PostgreSQL service. Do not point it at production databases.
