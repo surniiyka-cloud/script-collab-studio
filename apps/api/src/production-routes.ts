@@ -44,6 +44,13 @@ function readBlocks(state:Uint8Array):Block[]{
   });
  }finally{doc.destroy();}
 }
+function productionOrder(value:unknown):number {
+ if(!value || typeof value!=='object' || Array.isArray(value))return Number.MAX_SAFE_INTEGER;
+ const child=(value as {production?:unknown}).production;
+ if(!child || typeof child!=='object' || Array.isArray(child))return Number.MAX_SAFE_INTEGER;
+ const order=(child as {order?:unknown}).order;
+ return typeof order==='number' && Number.isFinite(order)?order:Number.MAX_SAFE_INTEGER;
+}
 async function getScene(sceneId:string,projectId?:string){
  const scene=required(await db.scene.findUnique({where:{id:sceneId},include:{script:true}}));
  if(projectId && scene.script.projectId!==projectId)throw new HttpError(404,'NOT_FOUND','Scene is not in project');
@@ -157,7 +164,7 @@ export function registerProductionRoutes(
   const {sceneId}=z.object({sceneId:uuid}).parse(req.params);
   const scene=await getScene(sceneId);await access(req,scene.script.projectId);
   const nodes=await db.node.findMany({where:{projectId:scene.script.projectId,sceneId,kind:'SHOT'},orderBy:{createdAt:'asc'},include:{mediaLinks:{include:{asset:true}}}});
-  return {data:nodes.map(node=>({...node,mediaLinks:node.mediaLinks.map(link=>({...link,asset:{...link.asset,sizeBytes:String(link.asset.sizeBytes)}}))}))};
+  return {data:nodes.sort((a,b)=>productionOrder(a.metadata)-productionOrder(b.metadata)).map(node=>({...node,mediaLinks:node.mediaLinks.map(link=>({...link,asset:{...link.asset,sizeBytes:String(link.asset.sizeBytes)}}))}))};
  });
  app.post('/api/v1/scenes/:sceneId/production/shots/approve',async req=>{
   const {sceneId}=z.object({sceneId:uuid}).parse(req.params);
@@ -168,7 +175,7 @@ export function registerProductionRoutes(
   const nodes=await db.$transaction(input.shots.map((shot,i)=>db.node.create({data:{
    projectId:scene.script.projectId,sceneId,kind:'SHOT',title:shot.title,description:shot.description,
    shotType:shot.shotType,durationMs:shot.durationMs,positionX:(count+i)*300,positionY:0,
-   metadata:{production:{sourceLine:shot.sourceLine,soundCue:shot.soundCue,musicCue:shot.musicCue,status:'approved'}},
+   metadata:{production:{order:count+i,sourceLine:shot.sourceLine,soundCue:shot.soundCue,musicCue:shot.musicCue,status:'approved'}},
   }})));
   return {data:nodes};
  });
@@ -182,7 +189,7 @@ export function registerProductionRoutes(
   const shots=await db.node.findMany({where:{projectId,sceneId:{in:scenes.map(s=>s.id)},kind:'SHOT'},orderBy:{createdAt:'asc'},include:{mediaLinks:{include:{asset:true}}}});
   return {data:{script,scenes:scenes.map(scene=>({
    id:scene.id,title:scene.title,
-   shots:shots.filter(shot=>shot.sceneId===scene.id).map(shot=>({
+   shots:shots.filter(shot=>shot.sceneId===scene.id).sort((a,b)=>productionOrder(a.metadata)-productionOrder(b.metadata)).map(shot=>({
     id:shot.id,title:shot.title,description:shot.description,shotType:shot.shotType,
     durationMs:shot.durationMs??3500,metadata:shot.metadata,
     media:shot.mediaLinks.map(link=>({id:link.asset.id,kind:link.asset.kind,mimeType:link.asset.mimeType,filename:link.asset.filename})),
