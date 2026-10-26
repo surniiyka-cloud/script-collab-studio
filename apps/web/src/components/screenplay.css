@@ -39,3 +39,5 @@
  .screenplay-prosemirror p[data-kind="character"] { margin-left: 22%; }
  .screenplay-prosemirror p[data-kind="dialogue"] { margin-left:10%; margin-right:10%; }
 }
+
+.editor-explainer { font-size:11px; color:#aaa6a3; line-height:1.5; margin:14px 0 0; }
