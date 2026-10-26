@@ -60,7 +60,9 @@ export function registerMediaRoutes(
   if(!Buffer.isBuffer(bytes)||!validFile(bytes,mime))throw new HttpError(400,'UNSUPPORTED_MEDIA','Только проверенные JPEG, PNG, WebP, MP3 или WAV.');
   if(bytes.length>8*1024*1024)throw new HttpError(413,'MEDIA_TOO_LARGE','Максимальный размер файла — 8 МБ');
   if(node.kind==='CHARACTER'&&!mime.startsWith('image/'))throw new HttpError(400,'IMAGE_REQUIRED','Референс персонажа должен быть изображением');
-  const filename=decodeURIComponent(String(req.headers['x-file-name']||'reference')).replace(/[\\/]/g,'_').slice(0,160);
+  let filename='reference';
+  try{filename=decodeURIComponent(String(req.headers['x-file-name']||'reference')).replace(/[\\/]/g,'_').slice(0,160);}
+  catch{throw new HttpError(400,'INVALID_FILENAME','Некорректное имя файла.');}
   const key=projectId+'/'+randomUUID();
   await ensureBucket();
   await store().send(new PutObjectCommand({Bucket:env.S3_BUCKET,Key:key,Body:bytes,ContentType:mime}));
