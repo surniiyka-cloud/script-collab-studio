@@ -44,6 +44,18 @@ export type FilmTimeline = {script:{id:string;title:string};scenes:Array<{
  id:string;title:string;shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;metadata:unknown;media?:Array<{id:string;kind:string;mimeType:string;filename:string}>}>;
 }>};
 
+export type WorkflowMedia = {id:string;kind:string;filename:string;mimeType:string;sizeBytes:string};
+export type WorkflowSubject = {id:string;title:string;description:string|null;media:WorkflowMedia[]};
+export type WorkflowScene = {
+ id:string;index:number;title:string;synopsis:string|null;locationId:string|null;
+ suggestedLocation:string|null;blocks:ImportBlock[];actionDescription:string;
+ characters:string[];dialogues:Array<{speaker:string;text:string;sourceLine:number}>;
+ shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;media:WorkflowMedia[]}>;
+};
+export type WorkflowStory = {
+ script:{id:string;title:string};scenes:WorkflowScene[];
+ characters:WorkflowSubject[];locations:WorkflowSubject[];
+};
 export type Session = { user: User; accessToken: string };
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
@@ -113,6 +125,14 @@ export const api = {
     request<ImportPreview>('/projects/'+encodeURIComponent(projectId)+'/production/import/preview','POST',token,{text}),
   commitImport: (token:string, projectId:string, input:{title:string;text:string;digest:string}) =>
     request<ImportCommit>('/projects/'+encodeURIComponent(projectId)+'/production/import/commit','POST',token,input),
+  workflowStory: (token:string,projectId:string,scriptId:string) =>
+    request<WorkflowStory>('/projects/'+encodeURIComponent(projectId)+'/workflow/story?scriptId='+encodeURIComponent(scriptId),'GET',token),
+  createLocation: (token:string,projectId:string,title:string,description?:string) =>
+    request<WorkflowSubject>('/projects/'+encodeURIComponent(projectId)+'/workflow/locations','POST',token,{title,description}),
+  assignSceneLocation: (token:string,sceneId:string,locationId:string|null) =>
+    request<{sceneId:string;locationId:string|null}>('/scenes/'+encodeURIComponent(sceneId)+'/workflow/location','PUT',token,{locationId}),
+  updateNode: (token:string,nodeId:string,changes:{title?:string;description?:string|null;durationMs?:number;shotType?:string}) =>
+    request<ProductionNode>('/nodes/'+encodeURIComponent(nodeId),'PATCH',token,changes),
   characters: (token:string,projectId:string) =>
     request<ProductionNode[]>('/projects/'+encodeURIComponent(projectId)+'/production/characters','GET',token),
   createCharacter: (token:string,projectId:string,name:string) =>
