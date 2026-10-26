@@ -1,13 +1,32 @@
 # Script Collab Studio
 
-Backend skeleton for the collaborative screenplay and storyboard application. **Stage 2 development backend acceptance checks passed in Codespaces on 2026-10-26; PR not merged or deployed.** Stage 1 architecture is tracked in [PR #1](https://github.com/surniiyka-cloud/script-collab-studio/pull/1).
+A collaborative workspace for screenplay writing and storyboarding. **Stages 1 (architecture) and 2 (backend) are merged into `main`. Stage 3 (React frontend) is under review on `chatgpt/feature-frontend-shell`, not yet deployed.**
 
 ## Stack
 
 - Node.js 22+, pnpm workspaces; Fastify 5, Zod 4, PostgreSQL 17, Prisma 7.
 - Hocuspocus 4 + Yjs with binary Yjs state persisted through PostgreSQL.
 - Argon2id password hashing, JWT bearer access tokens, Owner/Editor/Viewer checks.
-- React web client and object storage integration are later stages.
+- Stage 3 adds a React 19 / Vite 7 / Tailwind 4 web client. Rich-text Yjs editor, interactive React Flow and object storage uploads remain later stages.
+
+## Stage 3 — web frontend (under review)
+
+New `apps/web` provides Russian-language login/registration, live API-backed projects dashboard, screenplay/scene navigator and metadata editing, plus a read-only graph overview. This is a **real frontend shell**, not yet the collaborative Tiptap editor. Source and verification steps are in [Stage 3 verification](docs/stage3-verification.md).
+
+From your Codespace on the `chatgpt/feature-frontend-shell` branch (Node.js 22+, pnpm, Docker and an ignored `apps/api/.env` with a strong local JWT secret):
+
+```bash
+pnpm install --no-frozen-lockfile
+pnpm build
+docker compose up -d postgres
+pnpm dev
+```
+
+- Port **5173**: open the forwarded Vite web app in **Codespaces → Ports → Open in Browser**.
+- Port **3001**: Fastify API; Vite proxies `/api` to the API, no public API token or password in Vite config.
+- `pnpm dev` now starts frontend and backend concurrently. For one service: `pnpm dev:web` or `pnpm dev:api`.
+- After installing web dependencies, review and commit the regenerated **`pnpm-lock.yaml`** on the feature branch; never include `.env` or secrets.
+- `pnpm build` and manual browser flows **still require Codespaces verification** after the Stage 3 change.
 
 ## Local development setup
 
@@ -37,7 +56,7 @@ bash scripts/verify-backend.sh
 
 This development-only script installs dependencies, creates an ignored local `.env` with a random JWT secret if missing, starts PostgreSQL, runs Prisma migrations, builds, runs the dependency-free tests, launches the API and sends a real HTTP smoke test for registration, access control, scenes, nodes and edges. It creates **temporary test users** in the local DB and deletes its test project. It also verifies real-time multi-user WebSocket collaboration and Viewer permissions; it does **not** test a full server restart or live revocation of established WebSocket sessions, and must **never** point at production data. No API keys are required.
 
-**Verified in Codespaces on 2026-10-26 (original test):** `pnpm build` passed, logic tests passed (5/5), PostgreSQL and Hocuspocus started, and HTTP smoke passed (8/8). **Verified in Codespaces:** the two-user Hocuspocus/Yjs persistence test passed **3/3**: mutual synchronization, persisted PostgreSQL binary state, and a third client's read of the merged text. **Verified in the latest Codespaces run:** committed SQL migration replayed successfully into a fresh temporary database, unaffiliated WebSocket access was rejected, and Viewer writes were denied. See [Stage 2 verification](docs/stage2-verification.md). The pnpm lockfile and initial Prisma migration are committed in the feature branch. Do not send the `.env` file or JWT token to anyone.
+**Verified in Codespaces on 2026-10-26 (backend tests):** `pnpm build` passed, logic tests passed (5/5), PostgreSQL and Hocuspocus started, and HTTP smoke passed (8/8). **Verified in Codespaces:** the two-user Hocuspocus/Yjs persistence test passed **3/3**: mutual synchronization, persisted PostgreSQL binary state, and a third client's read of the merged text. **Verified in the latest Codespaces run:** committed SQL migration replayed successfully into a fresh temporary database, unaffiliated WebSocket access was rejected, and Viewer writes were denied. See [Stage 2 verification](docs/stage2-verification.md). The pnpm lockfile and initial Prisma migration are committed in the feature branch. Do not send the `.env` file or JWT token to anyone.
 
 ## Available Stage 2 endpoints
 
@@ -83,4 +102,4 @@ Connect to WebSocket `ws://localhost:3002` with a HocuspocusProvider (`token: <J
 
 Codespaces verified `pnpm build` and five logic tests, plus a database-backed HTTP smoke test (8/8). The real-time Hocuspocus/Yjs integration test now also **passed 3/3** in Codespaces, including two connected editors and a fresh third connection. Passed: fresh-database migration replay, outsider WebSocket rejection, Viewer read-only checks. Still pending: full server-restart persistence test and later production hardening. The migration and pnpm lockfile are committed. **Do not assume production readiness.**
 
-No secrets are committed: `.env.example` contains local placeholders only. Media uploads and AI endpoints will be added in later stages.
+No secrets are committed: `.env.example` contains local placeholders only. Frontend build/browser tests remain pending in Stage 3; media and AI endpoints will be added in later stages.

@@ -7,9 +7,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm --filter @studio/api dev",
-    "build": "pnpm --filter @studio/api build",
-    "typecheck": "pnpm --filter @studio/api typecheck",
+    "dev": "pnpm --parallel --filter @studio/api --filter @studio/web dev",
+    "dev:api": "pnpm --filter @studio/api dev",
+    "dev:web": "pnpm --filter @studio/web dev",
+    "build": "pnpm --filter @studio/api build && pnpm --filter @studio/web build",
+    "typecheck": "pnpm --filter @studio/api typecheck && pnpm --filter @studio/web typecheck",
     "test": "pnpm --filter @studio/api test",
     "db:generate": "pnpm --filter @studio/api db:generate",
     "db:migrate": "pnpm --filter @studio/api db:migrate",
