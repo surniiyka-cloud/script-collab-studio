@@ -64,6 +64,7 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
   try{
    const {readScreenplayFile}=await import('../file-import');
    const result=await readScreenplayFile(file);
+   if(!result.text.trim())throw Error('Не удалось извлечь текст. Если PDF состоит из сканов, требуется OCR или текстовый файл.');
    if(result.text.length>400000)throw Error('Слишком длинный текст: не более 400 000 символов за импорт.');
    setSource(result.text);setName(file.name.replace(/\.[^.]+$/,'').slice(0,200)||'Сценарий');
    setInfo(result.warning || 'Файл извлечён. Проверьте текст и нажмите «Разобрать сценарий».');
