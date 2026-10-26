@@ -26,10 +26,13 @@ type Line={speaker:string;text:string};
 function dialogues(blocks:ImportBlock[]):Line[]{
  const found:Line[]=[];let speaker='';
  for(const block of blocks){
-  const t=block.text.trim();
-  if(block.kind==='character')speaker=t;
-  else if(block.kind==='dialogue'&&speaker&&t)found.push({speaker,text:t});
-  else if(block.kind==='action'||block.kind==='heading'||block.kind==='transition')speaker='';
+  const text=block.text.trim();
+  if(block.kind==='character')speaker=text.replace(/\s*\([^)]*\)$/,'').trim();
+  else if(block.kind==='dialogue'){
+   const detected=block.speaker||text.match(/^([А-ЯЁA-Z][А-ЯЁA-Z\s-]+)(?:\s*\([^)]*\))?\s*:/u)?.[1];
+   const spoken=block.dialogueText??(detected?text.replace(/^.*?:\s*/, ''):text);
+   if((detected||speaker)&&spoken)found.push({speaker:detected||speaker,text:spoken});
+  }else if(block.kind==='action'||block.kind==='heading'||block.kind==='transition')speaker='';
  }
  return found;
 }
@@ -302,10 +305,16 @@ export function StoryWizardScreen(){
        <><div className="wizard-counters"><span><b>{preview.scenes.length}</b> сцен</span>
          <span><b>{preview.characters.length}</b> персонажей</span></div>
         {preview.warnings.map((w,i)=><p key={i} className="wizard-warning">{w}</p>)}
+        {!!preview.frontMatter?.some(b=>b.text.trim())&&<details className="wizard-front-matter">
+         <summary>Титульная часть документа (сохранится без изменений)</summary>
+         <pre>{preview.frontMatter.map(b=>b.text).join('\n')}</pre>
+        </details>}
         <div className="wizard-outline-list">{preview.scenes.map((scene,i)=><article key={i}>
-         <small>СЦЕНА {String(i+1).padStart(2,'0')} · строка {scene.sourceLineStart}</small>
+         <small>СЦЕНА {String(i+1).padStart(2,'0')} · строка {scene.sourceLineStart}{scene.timecode?' · '+scene.timecode:''}</small>
          <strong>{scene.title}</strong>
+         {scene.locationHint&&<div className="wizard-detected-location"><MapPin size={13}/>{scene.locationHint}{scene.timeOfDay?' · '+scene.timeOfDay:''}</div>}
          <p>{scene.blocks.filter(b=>b.kind==='action'&&b.text.trim()).slice(0,2).map(b=>b.text).join(' ').slice(0,240)||'Описание места отсутствует в сценарии'}</p>
+         {!!dialogues(scene.blocks).length&&<small className="wizard-dialogue-count">РЕПЛИКИ: {dialogues(scene.blocks).length} · ГОВОРЯТ: {[...new Set(dialogues(scene.blocks).map(d=>d.speaker))].join(', ')}</small>}
          {dialogues(scene.blocks).slice(0,3).map((line,j)=><div key={j} className="wizard-dialogue-mini"><b>{line.speaker}</b> {line.text}</div>)}
         </article>)}</div>
         <button className="wizard-primary wizard-full" disabled={busy||!importTitle.trim()}
@@ -365,6 +374,7 @@ export function StoryWizardScreen(){
       {currentScene&&<div className="wizard-scene-layout">
        <aside className="wizard-scene-context"><span className="wizard-eyebrow">СЦЕНА {String(currentScene.index).padStart(2,'0')}</span>
         <h3>{currentScene.title}</h3>
+        {currentScene.timecode&&<span className="wizard-timecode">{currentScene.timecode}</span>}
         <span className="wizard-context-label"><MapPin size={14}/> Место действия</span>
         <strong>{story.locations.find(l=>l.id===currentScene.locationId)?.title??currentScene.suggestedLocation??'Не определено'}</strong>
         <span className="wizard-context-label"><Users size={14}/> Персонажи</span>
@@ -489,7 +499,7 @@ function StoryBoard({scene,story,token,onEdit}:{
  return <article className="wizard-story-block">
   <div className="wizard-story-index"><span>{String(scene.index).padStart(2,'0')}</span></div>
   <div className="wizard-story-content">
-   <div className="wizard-story-title"><div><small>СЦЕНА {String(scene.index).padStart(2,'0')}</small><h3>{scene.title}</h3></div>
+   <div className="wizard-story-title"><div><small>СЦЕНА {String(scene.index).padStart(2,'0')}{scene.timecode?' · '+scene.timecode:''}</small><h3>{scene.title}</h3></div>
     <button className="wizard-light" onClick={onEdit}>Работа с кадрами <ArrowRight size={15}/></button></div>
    <div className="wizard-story-details">
     <div><span className="wizard-context-label"><MapPin size={14}/> ЛОКАЦИЯ</span>
