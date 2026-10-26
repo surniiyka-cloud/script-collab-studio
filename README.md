@@ -1,6 +1,6 @@
 # Script Collab Studio
 
-Backend skeleton for the collaborative screenplay and storyboard application. **Stage 2 working tree; not deployed or merged.** Stage 1 architecture is tracked in [PR #1](https://github.com/surniiyka-cloud/script-collab-studio/pull/1).
+Backend skeleton for the collaborative screenplay and storyboard application. **Stage 2 backend draft; Codespaces build and HTTP smoke passed on 2026-10-26, but this PR is not merged or deployed.** Stage 1 architecture is tracked in [PR #1](https://github.com/surniiyka-cloud/script-collab-studio/pull/1).
 
 ## Stack
 
@@ -9,7 +9,7 @@ Backend skeleton for the collaborative screenplay and storyboard application. **
 - Argon2id password hashing, JWT bearer access tokens, Owner/Editor/Viewer checks.
 - React web client and object storage integration are later stages.
 
-## Setup (once dependency registry and Docker are available)
+## Local development setup
 
 ```bash
 corepack enable
@@ -25,7 +25,7 @@ pnpm dev
 
 API: `http://localhost:3001/api/v1` · WebSocket: `ws://localhost:3002`. `docker-compose.yml` starts **only infrastructure** (Postgres and MinIO); API starts with `pnpm dev`. Production database migration should use `db:deploy` after migration scripts are generated/reviewed.
 
-**Important:** Stage 2 has not yet produced an initial checked-in Prisma migration, because the package registry/Prisma CLI could not be reached in the current environment. Run `pnpm --filter @studio/api db:migrate` against development Postgres. Never run `migrate dev` on a production database.
+**Important:** In a Codespace, `prisma migrate dev` completed successfully, but the generated migration folder and `pnpm-lock.yaml` are not yet committed to the feature branch. Review and commit them before merging the backend PR. Never run `migrate dev` against a production database.
 
 ## One-command backend verification (after installing Docker and Node.js 22+)
 
@@ -37,7 +37,7 @@ bash scripts/verify-backend.sh
 
 This development-only script installs dependencies, creates an ignored local `.env` with a random JWT secret if missing, starts PostgreSQL, runs Prisma migrations, builds, runs the dependency-free tests, launches the API and sends a real HTTP smoke test for registration, access control, scenes, nodes and edges. It creates **temporary test users** in the local DB and deletes its test project. It does **not** verify multi-user WebSocket collaboration, and must **never** point at production data. No API keys are required.
 
-If it passes, review/commit the generated `pnpm-lock.yaml` and Prisma migration in the feature branch before marking PR #2 ready. Do not send the `.env` file or JWT token to anyone.
+**Verified in Codespaces on 2026-10-26:** `pnpm build` passed, logic tests passed (5/5), PostgreSQL and Hocuspocus started, and HTTP smoke passed (8/8). See [Stage 2 verification](docs/stage2-verification.md). **Not yet verified:** two-user Yjs/WebSocket synchronization or a fresh database migration from checked-in SQL. Review and commit the generated `pnpm-lock.yaml` and Prisma migration in the feature branch before marking PR #2 ready. Do not send the `.env` file or JWT token to anyone.
 
 ## Available Stage 2 endpoints
 
@@ -81,6 +81,6 @@ Connect to WebSocket `ws://localhost:3002` with a HocuspocusProvider (`token: <J
 
 ## Testing and known limits
 
-Target checks: `pnpm build`, `pnpm test` and `pnpm --filter @studio/api typecheck` following install. The automated environment could not reach the npm registry and had no Docker, so full dependency build, `prisma validate` and database integration tests **were not run**. TypeScript syntax transpilation and pure graph algorithm tests were performed independently. Do **not** assume production readiness.
+Codespaces verified `pnpm build` and five logic tests, plus a database-backed HTTP smoke test (8/8). The separate execution environment could not run Docker/npm, but the user-supplied Codespaces output confirmed the successful external test. Still pending: committed migration/lockfile, fresh-DB replay and authenticated multi-client Hocuspocus/Yjs persistence test. **Do not assume production readiness.**
 
 No secrets are committed: `.env.example` contains local placeholders only. Media uploads and AI endpoints will be added in later stages.
