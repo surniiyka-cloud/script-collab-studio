@@ -10,6 +10,7 @@ import { FixedWindowLimiter } from './security.js';
 import { registerProductionRoutes } from './production-routes.js';
 import { registerMediaRoutes } from './production-media.js';
 import { registerProductionRenderRoutes } from './production-render.js';
+import { registerImageGenerationRoutes } from './production-image-ai.js';
 
 const id = z.uuid();
 const params = z.object({ projectId: id });
@@ -274,5 +275,6 @@ export function makeApp() {
   registerProductionRoutes(app,role);
   registerMediaRoutes(app,role,actor);
   registerProductionRenderRoutes(app,role);
+  registerImageGenerationRoutes(app,role);
   return app;
 }
