@@ -22,6 +22,7 @@ function stateFromBlocks(blocks:Block[]):Uint8Array<ArrayBuffer>{
   for(const block of blocks){
    const el=new Y.XmlElement('screenplayBlock');
    el.setAttribute('kind',block.kind);
+   el.setAttribute('sourceLine',String(block.sourceLine));
    if(block.speaker)el.setAttribute('speaker',block.speaker);
    if(block.dialogueText)el.setAttribute('dialogueText',block.dialogueText);
    if(block.delivery)el.setAttribute('delivery',block.delivery);
@@ -47,7 +48,9 @@ export function readBlocks(state:Uint8Array):Block[]{
    const raw=item.toArray().map(t=>t instanceof Y.XmlText?t.toString():'').join('');
    const kind=String(item.getAttribute('kind')??'');
    const allowed=['heading','action','character','dialogue','parenthetical','transition'];
-   return [{kind:(allowed.includes(kind)?kind:'action') as Block['kind'],text:raw,sourceLine:index+1,
+   const originalLine=Number(item.getAttribute('sourceLine'));
+   return [{kind:(allowed.includes(kind)?kind:'action') as Block['kind'],text:raw,
+    sourceLine:Number.isSafeInteger(originalLine)&&originalLine>0?originalLine:index+1,
     ...(item.getAttribute('speaker')?{speaker:String(item.getAttribute('speaker'))}:{}),
     ...(item.getAttribute('dialogueText')?{dialogueText:String(item.getAttribute('dialogueText'))}:{}),
     ...(item.getAttribute('delivery')?{delivery:String(item.getAttribute('delivery'))}:{}),
