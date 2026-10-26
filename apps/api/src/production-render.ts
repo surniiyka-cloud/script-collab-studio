@@ -38,7 +38,15 @@ export function registerProductionRenderRoutes(
   const scenes=await db.scene.findMany({where:{scriptId},orderBy:[{act:{sortKey:'asc'}},{sortKey:'asc'}]});
   const nodes=await db.node.findMany({where:{projectId,kind:'SHOT',sceneId:{in:scenes.map(s=>s.id)}},
    orderBy:{createdAt:'asc'},include:{mediaLinks:{include:{asset:true}}}});
-  const ordered=scenes.flatMap(scene=>nodes.filter(node=>node.sceneId===scene.id));
+  const position=(value:unknown)=>{
+   if(!value||typeof value!=='object'||Array.isArray(value))return Number.MAX_SAFE_INTEGER;
+   const part=(value as {production?:unknown}).production;
+   if(!part||typeof part!=='object'||Array.isArray(part))return Number.MAX_SAFE_INTEGER;
+   const order=(part as {order?:unknown}).order;
+   return typeof order==='number'&&Number.isFinite(order)?order:Number.MAX_SAFE_INTEGER;
+  };
+  const ordered=scenes.flatMap(scene=>nodes.filter(node=>node.sceneId===scene.id)
+   .sort((a,b)=>position(a.metadata)-position(b.metadata)));
   if(!ordered.length)throw new HttpError(409,'NOTHING_TO_RENDER','Сначала утвердите кадры.');
   const seconds=ordered.reduce((sum,shot)=>sum+(shot.durationMs??3500),0)/1000;
   if(ordered.length>25||seconds>150)throw new HttpError(400,'RENDER_TOO_LARGE','В одном экспорте до 25 кадров или 150 секунд.');
