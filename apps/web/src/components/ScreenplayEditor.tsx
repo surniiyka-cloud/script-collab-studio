@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import './screenplay.css';
 import { Node, mergeAttributes } from '@tiptap/core';
-import type { Editor } from '@tiptap/core';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
@@ -220,7 +221,7 @@ function EditorSurface({ displayName, userId }: { displayName: string; userId: s
 
 function ToolbarButton({ label, active, disabled, action, children }: {
   label: string; active?: boolean; disabled?: boolean;
-  action: () => void; children: React.ReactNode;
+  action: () => void; children: ReactNode;
 }) {
   return <button type="button" className={'format-button' + (active ? ' active' : '')}
     onClick={action} disabled={disabled} title={label} aria-label={label} aria-pressed={Boolean(active)}>{children}</button>;

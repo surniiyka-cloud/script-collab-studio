@@ -9,10 +9,11 @@ import type { Graph, Project, Scene, Script } from '../api';
 import { useAuth } from '../auth';
 import { DashboardFrame, formatDate, FriendlyError, UserIndicator } from '../components/Chrome';
 import { CreateModal, EmptyState } from '../components/Modal';
+import { ScreenplayEditor } from '../components/ScreenplayEditor';
 
 export function StudioScreen() {
   const { projectId } = useParams<{ projectId: string }>();
-  const { token, sessionExpired } = useAuth();
+  const { token, user, sessionExpired } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [scripts, setScripts] = useState<Script[]>([]);
   const [activeScript, setActiveScript] = useState<string | null>(null);
@@ -158,7 +159,7 @@ export function StudioScreen() {
             <h1>{project.title}</h1>
             <p>{project.description || 'Ваш творческий проект'}</p>
           </div>
-          <span className="studio-version"><Clapperboard size={16}/> Сценарная студия · Этап 3</span>
+          <span className="studio-version"><Clapperboard size={16}/> Сценарная студия · Этап 4</span>
         </div>
         <div className="studio-tabs" role="tablist" aria-label="Режим работы">
           <button className={view === 'script' ? 'studio-tab active' : 'studio-tab'}
@@ -252,9 +253,9 @@ export function StudioScreen() {
                   <textarea className="scene-synopsis" id="scene-description" value={draftSynopsis} maxLength={2000}
                     placeholder="Что происходит в этой сцене? Опишите действие, настроение и важные детали…"
                     onChange={e=>setDraftSynopsis(e.target.value)}/>
-                  <div className="screenplay-coming"><span className="screenplay-coming-icon"><PenLineIcon/></span>
-                    <div><strong>Текст сценария — следующий этап</strong><p>Диалоги, ремарки, формат сценария и совместное редактирование появятся здесь на этапе 4. Текст не сохраняется в синопсис вместо Yjs-документа.</p></div>
-                  </div>
+                  {token && user && <ScreenplayEditor key={currentScene.id} sceneId={currentScene.id}
+                    token={token} displayName={user.displayName} userId={user.id}/>}
+                  <p className="editor-explainer">Текст сценария синхронизируется отдельно от синопсиса и сохраняется через Yjs / PostgreSQL.</p>
                 </div>
                 <div className="scene-actions">
                   <button className="button button-danger-quiet" onClick={()=>void removeScene()} disabled={saving}><Trash2 size={17}/> Удалить сцену</button>
@@ -282,7 +283,7 @@ export function StudioScreen() {
               <div className="context-scene-number">{String(sceneIndex+1).padStart(2,'0')}</div>
               <strong>{currentScene.title}</strong><p>{currentScene.synopsis || 'Краткое описание ещё не добавлено.'}</p>
             </div>}
-            <div className="context-next"><Clock3 size={17}/><p>Продолжение: редактор сценария, совместные курсоры и раскадровка.</p></div>
+            <div className="context-next"><Clock3 size={17}/><p>Редактор сценария теперь работает совместно через Yjs. Интерактивная раскадровка — следующий этап.</p></div>
             <Link className="back-to-projects" to="/projects"><ArrowLeft size={16}/> К списку проектов</Link>
           </aside>
         </div>
@@ -293,4 +294,3 @@ export function StudioScreen() {
       onCreate={(title)=>createScene(title)} onClose={()=>setModal(null)}/>}
   </DashboardFrame>;
 }
-function PenLineIcon() { return <FileText size={21}/> }
