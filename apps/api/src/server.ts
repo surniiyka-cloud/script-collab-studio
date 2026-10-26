@@ -7,6 +7,7 @@ import { createsCycle } from './graph.js';
 import { HttpError, required } from './errors.js';
 import { edgeScope, membership, nodeScope, sceneScope, scriptScope } from './policy.js';
 import { FixedWindowLimiter } from './security.js';
+import { registerProductionRoutes } from './production-routes.js';
 
 const id = z.uuid();
 const params = z.object({ projectId: id });
@@ -268,5 +269,6 @@ export function makeApp() {
     await db.edge.delete({ where: { id: edgeId } });
     return asData({ deleted: true });
   });
+  registerProductionRoutes(app,role);
   return app;
 }
