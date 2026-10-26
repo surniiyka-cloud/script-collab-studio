@@ -20,6 +20,7 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
  const [approved,setApproved]=useState<ProductionNode[]>([]);
  const [timeline,setTimeline]=useState<FilmTimeline|null>(null);
  const [busy,setBusy]=useState(false);
+ const [rendering,setRendering]=useState(false);
  const [error,setError]=useState('');
  const [info,setInfo]=useState('');
  const [playing,setPlaying]=useState(false);
@@ -105,6 +106,19 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
    setDraft(value.shots);
    setInfo(value.note);
   }catch(e){report(e);}finally{setBusy(false);}
+ }
+ async function renderMovie(){
+  if(!scriptId||rendering)return;
+  setRendering(true);setError('');setInfo('');
+  try{
+   const blob=await api.exportAnimatic(token,projectId,scriptId);
+   const href=URL.createObjectURL(blob);
+   const a=document.createElement('a');
+   a.href=href;a.download='script-collab-animatic.mp4';
+   document.body.appendChild(a);a.click();a.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(href),10000);
+   setInfo('MP4-аниматик готов. Видеофайл сохранён через браузер.');
+  }catch(e){report(e);}finally{setRendering(false);}
  }
  async function approve(){
   if(!sceneId||!draft.length)return;
@@ -221,6 +235,7 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
        <div className="film-transport">
         <button className="button button-primary" onClick={()=>setPlaying(p=>!p)}>{playing?<Pause size={18}/>:<Play size={18}/>} {playing?'Пауза':'Воспроизвести'}</button>
         <button className="button button-subtle" onClick={()=>{setPlaying(false);setFrame(0);}}>В начало</button>
+        <button className="button button-subtle" disabled={rendering} onClick={()=>void renderMovie()}><Film size={16}/>{rendering?'Собираем MP4…':'Экспорт MP4'}</button>
         <span>Общая длительность ~{Math.round(storyFrames.reduce((sum,x)=>sum+x.durationMs,0)/1000)} сек.</span>
        </div>
        <div className="film-strip">{storyFrames.map((shot,i)=><button key={shot.id} className={i===frame?'active':''} onClick={()=>{setPlaying(false);setFrame(i);}}>
