@@ -36,6 +36,10 @@ export type ProductionNode = {
  shotType:string|null;durationMs:number|null;metadata:unknown;
  mediaLinks?:Array<{id:string;asset:Asset}>;
 };
+export type AIStatus = {
+ text: {configured:boolean;reachable:boolean;label:string;message:string};
+ image: {configured:boolean;reachable:boolean;label:string;message:string};
+};
 export type FilmTimeline = {script:{id:string;title:string};scenes:Array<{
  id:string;title:string;shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;metadata:unknown;media?:Array<{id:string;kind:string;mimeType:string;filename:string}>}>;
 }>};
@@ -71,8 +75,10 @@ async function request<T>(
   catch { throw new ApiError(response.status, 'BAD_RESPONSE', 'Неожиданный ответ сервера.'); }
   if (!response.ok) {
     throw new ApiError(response.status, result.error?.code ?? 'REQUEST_FAILED',
-      response.status === 429 ? 'Слишком много запросов. Попробуйте через минуту.'
-        : response.status >= 500 ? 'Ошибка сервера. Попробуйте ещё раз.'
+      response.status === 429 ? result.error?.message ?? 'Слишком много запросов. Попробуйте через минуту.'
+        : response.status >= 500 && /^(AI_|COMFYUI_|IMAGE_AI_|SHOT_DESCRIPTION_REQUIRED)/.test(result.error?.code ?? '')
+          ? result.error?.message ?? 'Проверьте подключение ИИ.'
+        : response.status >= 500 ? 'Ошибка сервера. Код: ' + (result.error?.code ?? 'INTERNAL_ERROR')
         : result.error?.message ?? 'Запрос не выполнен.');
   }
   if (result.data === undefined) throw new ApiError(response.status, 'BAD_RESPONSE', 'Сервер не вернул данные.');
@@ -113,6 +119,10 @@ export const api = {
     request<ProductionNode>('/projects/'+encodeURIComponent(projectId)+'/production/characters','POST',token,{name}),
   shotDraft: (token:string,sceneId:string) =>
     request<{sceneId:string;shots:ShotDraft[];source:string;note:string}>('/scenes/'+encodeURIComponent(sceneId)+'/production/shot-draft','GET',token),
+  aiStatus: (token:string,projectId:string) =>
+    request<AIStatus>('/projects/'+encodeURIComponent(projectId)+'/production/ai-status','GET',token),
+  generateFrameImage: (token:string,projectId:string,shotId:string,prompt?:string) =>
+    request<{asset:Asset;note:string}>('/projects/'+encodeURIComponent(projectId)+'/production/shots/'+encodeURIComponent(shotId)+'/generate-image','POST',token,prompt?{prompt}:{}),
   aiShotDraft: (token:string,sceneId:string) =>
     request<{sceneId:string;shots:ShotDraft[];source:string;note:string}>('/scenes/'+encodeURIComponent(sceneId)+'/production/shot-draft/ai','POST',token,{}),
   approvedShots: (token:string,sceneId:string) =>
