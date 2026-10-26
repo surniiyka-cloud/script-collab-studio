@@ -61,11 +61,13 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
  async function onFile(e:ChangeEvent<HTMLInputElement>){
   const file=e.target.files?.[0];if(!file)return;
   setError('');setParsed(null);
-  if(file.size>600000){setError('Слишком большой сценарий. Максимум 400 000 символов.');return;}
-  if(!/\.(txt|fountain|md)$/i.test(file.name)){setError('Пока поддерживаем TXT, Fountain и Markdown. Для PDF/DOCX используйте текстовую версию.');return;}
-  const text=await file.text();
-  setSource(text);setName(file.name.replace(/\.[^.]+$/,'').slice(0,200)||'Сценарий');
-  setInfo('Файл загружен. Проверьте текст и нажмите «Разобрать сценарий».');
+  try{
+   const {readScreenplayFile}=await import('../file-import');
+   const result=await readScreenplayFile(file);
+   if(result.text.length>400000)throw Error('Слишком длинный текст: не более 400 000 символов за импорт.');
+   setSource(result.text);setName(file.name.replace(/\.[^.]+$/,'').slice(0,200)||'Сценарий');
+   setInfo(result.warning || 'Файл извлечён. Проверьте текст и нажмите «Разобрать сценарий».');
+  }catch(error){report(error);}
  }
  async function inspect(){
   setBusy(true);setError('');setInfo('');
@@ -148,8 +150,8 @@ export function ProductionStudio({projectId,token,scriptId,sceneId,onImported,on
   {info&&<p className="production-notice" role="status"><Check size={16}/>{info}</p>}
   {tab==='import'&&<section className="production-panel">
     <div className="production-panel-title"><FileText size={20}/><div><h3>Импорт полного сценария</h3><p>Сначала проверьте распознанные сцены. Ничего не будет записано до подтверждения.</p></div></div>
-    <label className="production-upload"><Upload size={25}/><strong>Загрузить сценарий</strong><span>TXT, Fountain или Markdown</span>
-      <input type="file" accept=".txt,.fountain,.md,text/plain" onChange={onFile}/></label>
+    <label className="production-upload"><Upload size={25}/><strong>Загрузить сценарий</strong><span>TXT, Fountain, Markdown, DOCX или PDF</span>
+      <input type="file" accept=".txt,.fountain,.md,.docx,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onFile}/></label>
     <label className="production-field">Название сценария<input maxLength={200} value={name} onChange={e=>setName(e.target.value)}/></label>
     <label className="production-field">Полный текст<textarea rows={11} value={source} onChange={e=>{setSource(e.target.value);setParsed(null);}} placeholder="Вставьте полный сценарий с заголовками сцен, ремарками и диалогами…"/></label>
     <div className="production-row"><span className="production-muted">{source.length.toLocaleString('ru-RU')} символов · исходный текст не редактируется автоматически</span>
