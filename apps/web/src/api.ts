@@ -129,6 +129,8 @@ export const api = {
     request<WorkflowStory>('/projects/'+encodeURIComponent(projectId)+'/workflow/story?scriptId='+encodeURIComponent(scriptId),'GET',token),
   createLocation: (token:string,projectId:string,title:string,description?:string) =>
     request<WorkflowSubject>('/projects/'+encodeURIComponent(projectId)+'/workflow/locations','POST',token,{title,description}),
+  reorderShots: (token:string,sceneId:string,shotIds:string[]) =>
+    request<{sceneId:string;shotIds:string[]}>('/scenes/'+encodeURIComponent(sceneId)+'/workflow/shots/order','PUT',token,{shotIds}),
   assignSceneLocation: (token:string,sceneId:string,locationId:string|null) =>
     request<{sceneId:string;locationId:string|null}>('/scenes/'+encodeURIComponent(sceneId)+'/workflow/location','PUT',token,{locationId}),
   updateNode: (token:string,nodeId:string,changes:{title?:string;description?:string|null;durationMs?:number;shotType?:string}) =>
