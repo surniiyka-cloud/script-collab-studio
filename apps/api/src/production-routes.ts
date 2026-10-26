@@ -15,7 +15,7 @@ const approvedShot=z.object({
  shotType:z.enum(['WIDE','MEDIUM','CLOSE_UP','OTHER']),durationMs:z.number().int().min(500).max(60000),
  sourceLine:z.number().int().positive().nullable(),soundCue:z.string().max(250),musicCue:z.string().max(250),
 });
-function stateFromBlocks(blocks:Block[]):Uint8Array{
+function stateFromBlocks(blocks:Block[]):Uint8Array<ArrayBuffer>{
  const doc=new Y.Doc();
  const fragment=doc.getXmlFragment('screenplay');
  doc.transact(()=>{
@@ -27,7 +27,11 @@ function stateFromBlocks(blocks:Block[]):Uint8Array{
    el.insert(0,[text]);fragment.insert(fragment.length,[el]);
   }
  });
- const update=Y.encodeStateAsUpdate(doc);doc.destroy();
+ const encoded=Y.encodeStateAsUpdate(doc);
+ // Prisma 7 requires an ArrayBuffer-backed byte array.
+ const update=new Uint8Array(new ArrayBuffer(encoded.byteLength));
+ update.set(encoded);
+ doc.destroy();
  return update;
 }
 function readBlocks(state:Uint8Array):Block[]{
@@ -37,7 +41,7 @@ function readBlocks(state:Uint8Array):Block[]{
   const fragment=doc.getXmlFragment('screenplay');
   return fragment.toArray().flatMap((item,index)=>{
    if(!(item instanceof Y.XmlElement))return [];
-   const raw=item.toArray().map(t=>t instanceof Y.XmlText?t.toDelta().map(d=>String(d.insert)).join(''):'').join('');
+   const raw=item.toArray().map(t=>t instanceof Y.XmlText?t.toString():'').join('');
    const kind=String(item.getAttribute('kind')??'');
    const allowed=['heading','action','character','dialogue','parenthetical','transition'];
    return [{kind:(allowed.includes(kind)?kind:'action') as Block['kind'],text:raw,sourceLine:index+1}];
