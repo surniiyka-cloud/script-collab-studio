@@ -95,8 +95,8 @@ export function registerProductionRoutes(
  app.get('/api/v1/projects/:projectId/production/characters',async req=>{
   const {projectId}=z.object({projectId:uuid}).parse(req.params);
   await access(req,projectId);
-  const characters=await db.node.findMany({where:{projectId,kind:'CHARACTER'},orderBy:{title:'asc'}});
-  return {data:characters};
+  const characters=await db.node.findMany({where:{projectId,kind:'CHARACTER'},orderBy:{title:'asc'},include:{mediaLinks:{include:{asset:true}}}});
+  return {data:characters.map(node=>({...node,mediaLinks:node.mediaLinks.map(link=>({id:link.id,asset:{id:link.asset.id,filename:link.asset.filename,mimeType:link.asset.mimeType,kind:link.asset.kind,sizeBytes:String(link.asset.sizeBytes)}}))}))};
  });
  app.post('/api/v1/projects/:projectId/production/characters',async req=>{
   const {projectId}=z.object({projectId:uuid}).parse(req.params);
