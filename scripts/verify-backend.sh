@@ -26,6 +26,7 @@ docker compose up -d postgres
 pnpm --filter @studio/api db:migrate
 pnpm build
 pnpm test:logic
+bash scripts/verify-fresh-db.sh
 
 ( cd apps/api && node dist/index.js ) &
 server_pid=$!
@@ -38,4 +39,4 @@ for _ in $(seq 1 40); do
 done
 node scripts/smoke-backend.mjs
 pnpm --filter @studio/api test:collab
-printf '\nHTTP and Yjs WebSocket verification passed. Review and commit pnpm-lock.yaml and the Prisma migration before merging.\n'
+printf '\nAll local backend gates passed: clean-DB migration replay, HTTP API and WebSocket permissions. Review the terminal output before marking the PR ready.\n'
