@@ -170,3 +170,11 @@
 .wizard-front-matter summary{cursor:pointer;font-weight:750}
 .wizard-front-matter pre{overflow:auto;white-space:pre-wrap;max-height:180px;font-size:11px;line-height:1.6;margin-bottom:0}
 .wizard-timecode{display:inline-flex;background:#f9eee9;color:#b57355;border-radius:6px;padding:6px 10px;margin-bottom:13px;font-size:12px;font-weight:750}
+
+.wizard-scene-details{margin-top:12px;border-top:1px solid #eae7e3;padding-top:11px}
+.wizard-scene-details summary{cursor:pointer;color:#bf7a5a;font-size:12px;font-weight:730}
+.wizard-scene-details-content{margin:10px 0 0;padding:13px;border-radius:9px;background:#f8f8f7;max-height:440px;overflow-y:auto}
+.wizard-scene-details-content p{white-space:pre-wrap;font-size:12px;line-height:1.65;margin:0 0 11px;max-width:none;color:#515e70}
+.wizard-scene-details-content .wizard-line-dialogue{border-left:2px solid #d99272;padding-left:10px;display:flex;flex-direction:column;gap:2px}
+.wizard-scene-details-content .wizard-line-dialogue strong{font-size:11px;color:#bb7454}
+.wizard-scene-details-content .wizard-line-transition{color:#b27f61;font-style:italic}
