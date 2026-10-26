@@ -36,7 +36,7 @@ async function request(method, path, payload, token) {
   return body.data;
 }
 
-function join(sceneId, token) {
+function join(sceneId, token, onAuthenticationFailed) {
   const document = new Y.Doc();
   const provider = new HocuspocusProvider({
     url: socket,
@@ -44,6 +44,7 @@ function join(sceneId, token) {
     token,
     document,
     WebSocketPolyfill: WebSocket,
+    ...(onAuthenticationFailed ? { onAuthenticationFailed } : {}),
   });
   clients.push({ document, provider });
   return { document, provider };
@@ -107,7 +108,60 @@ try {
     return value.includes('From A ' + unique) && value.includes('From B ' + unique);
   }, 'third client sees persisted screenplay');
 
-  console.log('PASS: Two-user Hocuspocus/Yjs roundtrip + PostgreSQL binary-state persistence.');
+  console.log('4/5 Deny unauthorized WebSocket access to the scene');
+  const outsider = await request('POST', '/api/v1/auth/register', {
+    email: 'collab-view-' + unique + '@example.test', password, displayName: 'Collab Viewer',
+  });
+  owned.push(outsider.user.id);
+
+  let denial = '';
+  const intruder = join(scene.id, outsider.accessToken, ({ reason }) => {
+    denial = reason || 'Rejected';
+  });
+  await waitFor(() => denial.length > 0, 'unrelated account receives authenticationFailed from Hocuspocus');
+  check(!intruder.provider.isAuthenticated && !intruder.provider.synced,
+    'Unrelated user should never authenticate or sync this document');
+  intruder.provider.destroy();
+  intruder.document.destroy();
+  const intruderIndex = clients.findIndex(item => item.provider === intruder.provider);
+  if (intruderIndex >= 0) clients.splice(intruderIndex, 1);
+
+  console.log('5/5 Viewer may receive changes but cannot write into the shared scene');
+  await db.projectMember.create({
+    data: { projectId: project.id, userId: outsider.user.id, role: 'VIEWER' },
+  });
+  const viewer = join(scene.id, outsider.accessToken);
+  await waitFor(() => viewer.provider.synced, 'Viewer authorized for read-only sync');
+  const before = a.document.getText('screenplay').toString();
+  await waitFor(() => viewer.document.getText('screenplay').toString() === before,
+    'Viewer received original screenplay');
+
+  const protectedText = 'VIEWER_FORBIDDEN_' + unique;
+  viewer.document.getText('screenplay').insert(0, protectedText);
+  // A local Y.Doc can always be modified; the server must ignore its outgoing update.
+  // Wait past the configured 1-second persistence debounce.
+  await new Promise(resolve => setTimeout(resolve, 1800));
+  check(!a.document.getText('screenplay').toString().includes(protectedText),
+    'Viewer mutation propagated to the first authorized editor');
+  check(!b.document.getText('screenplay').toString().includes(protectedText),
+    'Viewer mutation propagated to the second authorized editor');
+  const snapshot = await db.yDocState.findUnique({ where: { documentName: 'scene:' + scene.id } });
+  check(snapshot, 'Yjs document was unexpectedly absent from the database');
+  const persisted = new Y.Doc();
+  try {
+    Y.applyUpdate(persisted, snapshot.update);
+    check(!persisted.getText('screenplay').toString().includes(protectedText),
+      'Viewer mutation reached PostgreSQL');
+  } finally {
+    persisted.destroy();
+  }
+  // Viewer still receives legitimate writer edits after its rejected attempt.
+  const liveEdit = 'ALLOWED_EDIT_' + unique;
+  a.document.getText('screenplay').insert(0, liveEdit);
+  await waitFor(() => viewer.document.getText('screenplay').toString().includes(liveEdit),
+    'Viewer receives new edits from an authorized writer');
+
+  console.log('PASS: Yjs two-editor sync, PostgreSQL persistence, denied unauthorized WS, and Viewer read-only.');
 } finally {
   // Disconnect clients before deleting their project, so no late writes target deleted data.
   for (const { provider, document } of clients) {
