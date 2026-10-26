@@ -1,0 +1,78 @@
+import { randomUUID } from 'node:crypto';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { z } from 'zod';
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadBucketCommand, CreateBucketCommand } from '@aws-sdk/client-s3';
+import { db } from './db.js';
+import { HttpError, required } from './errors.js';
+import { env } from './env.js';
+
+const uuid=z.uuid();
+let client:S3Client|undefined;
+let bucketReady:Promise<void>|undefined;
+function store(){
+ if(!env.S3_ENDPOINT||!env.S3_ACCESS_KEY||!env.S3_SECRET_KEY)
+  throw new HttpError(503,'STORAGE_NOT_CONFIGURED','Хранилище не настроено.');
+ if(!client)client=new S3Client({endpoint:env.S3_ENDPOINT,region:'us-east-1',forcePathStyle:true,
+  credentials:{accessKeyId:env.S3_ACCESS_KEY,secretAccessKey:env.S3_SECRET_KEY}});
+ return client;
+}
+async function ensureBucket(){
+ if(!bucketReady)bucketReady=(async()=>{
+  try{await store().send(new HeadBucketCommand({Bucket:env.S3_BUCKET}));}
+  catch {
+   try{await store().send(new CreateBucketCommand({Bucket:env.S3_BUCKET}));}
+   catch(error){bucketReady=undefined;throw error;}
+  }
+ })();
+ return bucketReady;
+}
+function validFile(bytes:Buffer,mime:string){
+ if(mime==='image/png')return bytes.length>8&&bytes.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex'));
+ if(mime==='image/jpeg')return bytes.length>4&&bytes[0]===255&&bytes[1]===216&&bytes.at(-2)===255&&bytes.at(-1)===217;
+ if(mime==='image/webp')return bytes.length>12&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP';
+ if(mime==='audio/mpeg')return bytes.length>8&&(bytes.toString('ascii',0,3)==='ID3'||(bytes[0]===255&&(bytes[1]&224)===224));
+ if(mime==='audio/wav'||mime==='audio/x-wav')return bytes.length>12&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WAVE';
+ return false;
+}
+export function registerMediaRoutes(
+ app:FastifyInstance,
+ access:(req:FastifyRequest,id:string,write?:boolean)=>Promise<unknown>,
+ actor:(req:FastifyRequest)=>Promise<string>,
+){
+ app.addContentTypeParser(['image/jpeg','image/png','image/webp','audio/mpeg','audio/wav','audio/x-wav'],
+  {parseAs:'buffer',bodyLimit:16*1024*1024},(_req,body,done)=>done(null,body));
+
+ app.post('/api/v1/projects/:projectId/production/nodes/:nodeId/media',
+  {bodyLimit:16*1024*1024},async(req,reply)=>{
+  const {projectId,nodeId}=z.object({projectId:uuid,nodeId:uuid}).parse(req.params);
+  await access(req,projectId,true);
+  const node=required(await db.node.findUnique({where:{id:nodeId}}));
+  if(node.projectId!==projectId||!['CHARACTER','SHOT'].includes(node.kind))
+   throw new HttpError(404,'NOT_FOUND','Character or shot node not found');
+  const mime=String(req.headers['content-type']||'').split(';',1)[0].toLowerCase();
+  const bytes=req.body;
+  if(!Buffer.isBuffer(bytes)||!validFile(bytes,mime))throw new HttpError(400,'UNSUPPORTED_MEDIA','Только проверенные JPEG, PNG, WebP, MP3 или WAV.');
+  if(bytes.length>8*1024*1024)throw new HttpError(413,'MEDIA_TOO_LARGE','Максимальный размер файла — 8 МБ');
+  if(node.kind==='CHARACTER'&&!mime.startsWith('image/'))throw new HttpError(400,'IMAGE_REQUIRED','Референс персонажа должен быть изображением');
+  const filename=decodeURIComponent(String(req.headers['x-file-name']||'reference')).replace(/[\\/]/g,'_').slice(0,160);
+  const key=projectId+'/'+randomUUID();
+  await ensureBucket();
+  await store().send(new PutObjectCommand({Bucket:env.S3_BUCKET,Key:key,Body:bytes,ContentType:mime}));
+  const media=await db.mediaAsset.create({data:{projectId,kind:mime.startsWith('audio/')?'AUDIO':'IMAGE',
+   objectKey:key,filename,mimeType:mime,sizeBytes:BigInt(bytes.length),links:{create:{nodeId}}}});
+  reply.status(201);
+  return {data:{id:media.id,filename:media.filename,mimeType:media.mimeType,kind:media.kind,sizeBytes:String(media.sizeBytes)}};
+ });
+ app.get('/api/v1/media/:mediaId/file',async(req,reply)=>{
+  const {mediaId}=z.object({mediaId:uuid}).parse(req.params);
+  const media=required(await db.mediaAsset.findUnique({where:{id:mediaId}}));
+  await access(req,media.projectId);
+  await actor(req);
+  const response=await store().send(new GetObjectCommand({Bucket:env.S3_BUCKET,Key:media.objectKey}));
+  if(!response.Body)throw new HttpError(404,'NOT_FOUND','Media not found');
+  const bytes=await response.Body.transformToByteArray();
+  reply.header('Cache-Control','private, max-age=60');
+  reply.header('X-Content-Type-Options','nosniff');
+  return reply.type(media.mimeType).send(Buffer.from(bytes));
+ });
+}
