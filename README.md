@@ -11,9 +11,9 @@ A collaborative workspace for screenplay writing and storyboarding. **Stages 1 (
 
 ## Stage 5 — Script-to-Film production workflow (draft)
 
-In the separate `chatgpt/feature-script-to-film-pipeline` branch, the project workspace gains **Производство** with four steps: upload/paste a complete screenplay (TXT/Fountain/MD/DOCX/selectable-text PDF), review scene/character parsing and commit to Yjs, attach named character reference images (private MinIO), propose/approve per-scene shots, attach images/audio and preview an animatic. An optional local Ollama text model can propose shot lists. FFmpeg can create an MP4 **still-image animatic** from approved, illustrated shots; it is not a generative AI film.
+In the separate `chatgpt/feature-script-to-film-pipeline` branch, the project workspace gains **Производство** with four steps: upload/paste a complete screenplay (TXT/Fountain/MD/DOCX/selectable-text PDF), review scene/character parsing and commit to Yjs, attach named character reference images (private SeaweedFS S3), propose/approve per-scene shots, attach images/audio and preview an animatic. An optional local Ollama text model can propose shot lists. FFmpeg can create an MP4 **still-image animatic** from approved, illustrated shots; it is not a generative AI film.
 
-**Stage 5 is NOT YET VERIFIED OR MERGED.** See [Script-to-Film implementation and tests](docs/script-to-film-implementation.md). Requirements for browser upload: PostgreSQL and MinIO from `docker compose up -d postgres minio`; append the local S3_ENDPOINT/S3_ACCESS_KEY/S3_SECRET_KEY/S3_BUCKET entries from `.env.example` to your ignored `apps/api/.env`. Stage 5 requires fresh dependency installation and lockfile review in Codespaces. Run `bash scripts/verify-production.sh` for the API/media smoke after installation. Export MP4 requires a local FFmpeg binary.
+**Stage 5 is NOT YET VERIFIED OR MERGED.** See [Script-to-Film implementation and tests](docs/script-to-film-implementation.md). Requirements for browser upload: PostgreSQL and SeaweedFS S3 from `docker compose up -d postgres objectstore`; append the local S3_ENDPOINT/S3_ACCESS_KEY/S3_SECRET_KEY/S3_BUCKET entries from `.env.example` to your ignored `apps/api/.env`. Stage 5 requires fresh dependency installation and lockfile review in Codespaces. Run `bash scripts/verify-production.sh` for the API/media smoke after installation. Export MP4 requires a local FFmpeg binary.
 
 Generation of new images, moving videos, composed music and voice-over remains a later, opt-in provider integration. No paid service is silently used and the imported author script is never silently rewritten.
 
@@ -50,7 +50,7 @@ pnpm build
 pnpm dev
 ```
 
-API: `http://localhost:3001/api/v1` · WebSocket: `ws://localhost:3002`. `docker-compose.yml` starts **only infrastructure** (Postgres and MinIO); API starts with `pnpm dev`. Production database migration should use `db:deploy` after migration scripts are generated/reviewed.
+API: `http://localhost:3001/api/v1` · WebSocket: `ws://localhost:3002`. `docker-compose.yml` starts **only infrastructure** (Postgres and SeaweedFS S3); API starts with `pnpm dev`. Production database migration should use `db:deploy` after migration scripts are generated/reviewed.
 
 **Important:** In Codespaces, `prisma migrate dev`, `prisma validate`, the backend build, HTTP smoke and the first multiuser Yjs smoke passed. The initial Prisma migration and `pnpm-lock.yaml` were subsequently pushed to the feature branch in commit `1ef26a4`. The fresh-DB migration replay and WebSocket Viewer/outsider authorization tests also passed in the latest Codespaces run. Never run `migrate dev` against a production database.
 
