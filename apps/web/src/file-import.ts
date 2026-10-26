@@ -15,7 +15,8 @@ export async function readScreenplayFile(file:File):Promise<{text:string;warning
   const extracted=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});
   return {text:extracted.value,warning:'Проверьте границы реплик и сцен: форматирование DOCX не переносится автоматически.'};
  }
- const pdfjs=await import('pdfjs-dist/build/pdf.mjs');
+ // The public package entry exposes the PDF.js TypeScript declarations.
+ const pdfjs=await import('pdfjs-dist');
  const worker=await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
  pdfjs.GlobalWorkerOptions.workerSrc=worker.default;
  const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false});
