@@ -37,7 +37,7 @@ bash scripts/verify-backend.sh
 
 This development-only script installs dependencies, creates an ignored local `.env` with a random JWT secret if missing, starts PostgreSQL, runs Prisma migrations, builds, runs the dependency-free tests, launches the API and sends a real HTTP smoke test for registration, access control, scenes, nodes and edges. It creates **temporary test users** in the local DB and deletes its test project. It does **not** verify multi-user WebSocket collaboration, and must **never** point at production data. No API keys are required.
 
-**Verified in Codespaces on 2026-10-26:** `pnpm build` passed, logic tests passed (5/5), PostgreSQL and Hocuspocus started, and HTTP smoke passed (8/8). See [Stage 2 verification](docs/stage2-verification.md). **Not yet verified:** two-user Yjs/WebSocket synchronization or a fresh database migration from checked-in SQL. Review and commit the generated `pnpm-lock.yaml` and Prisma migration in the feature branch before marking PR #2 ready. Do not send the `.env` file or JWT token to anyone.
+**Verified in Codespaces on 2026-10-26 (original test):** `pnpm build` passed, logic tests passed (5/5), PostgreSQL and Hocuspocus started, and HTTP smoke passed (8/8). **New in the feature branch:** the verification script also runs a two-user Hocuspocus/Yjs persistence test using `@hocuspocus/provider` (dev-only dependency); this new test is **not yet executed** and may require fixes. See [Stage 2 verification](docs/stage2-verification.md). Review and commit generated `pnpm-lock.yaml` and Prisma migrations before marking PR #2 ready. Do not send the `.env` file or JWT token to anyone.
 
 ## Available Stage 2 endpoints
 
@@ -81,6 +81,6 @@ Connect to WebSocket `ws://localhost:3002` with a HocuspocusProvider (`token: <J
 
 ## Testing and known limits
 
-Codespaces verified `pnpm build` and five logic tests, plus a database-backed HTTP smoke test (8/8). The separate execution environment could not run Docker/npm, but the user-supplied Codespaces output confirmed the successful external test. Still pending: committed migration/lockfile, fresh-DB replay and authenticated multi-client Hocuspocus/Yjs persistence test. **Do not assume production readiness.**
+Codespaces verified `pnpm build` and five logic tests, plus a database-backed HTTP smoke test (8/8). A second real-time WebSocket integration test has now been prepared but **not yet run**; it will be included in the next `bash scripts/verify-backend.sh` invocation. Still pending: committed migration/lockfile, fresh-DB replay, Reader/Viewer permissions in live WS, and end-to-end UI. **Do not assume production readiness.**
 
 No secrets are committed: `.env.example` contains local placeholders only. Media uploads and AI endpoints will be added in later stages.
