@@ -1,0 +1,42 @@
+.access-backdrop{position:fixed;inset:0;z-index:80;display:flex;justify-content:center;align-items:flex-start;overflow:auto;padding:35px 15px;background:#171b29a8;backdrop-filter:blur(6px)}
+.access-dialog{width:min(100%,670px);max-height:calc(100vh - 70px);overflow:auto;background:#fff;border:1px solid #e6e6e6;border-radius:18px;box-shadow:0 26px 70px #10172344;color:#353e4e;padding:27px}
+.access-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid #eae9e8;padding-bottom:18px}
+.access-header span{font-size:10px;letter-spacing:1.7px;font-weight:850;color:#c27a5b}
+.access-header h2{font-size:25px;line-height:1.2;letter-spacing:-.8px;margin:10px 0 5px}
+.access-header p{font-size:12px;color:#979aa3;margin:0}
+.access-header>button{border:0;background:#f4f3f2;border-radius:9px;width:35px;height:35px;display:grid;place-items:center;color:#7a7c84}
+.access-section{padding:22px 0}
+.access-label{display:flex;align-items:center;gap:9px;color:#c17c60;margin-bottom:15px}
+.access-label h3{font-size:15px;margin:0;color:#4a5361}.access-label>span{margin-left:auto;font-size:11px;color:#8f969f}
+.access-member-list{display:grid;gap:5px}
+.access-member{display:flex;align-items:center;gap:12px;border:1px solid #f0eeec;border-radius:10px;padding:10px}
+.access-avatar{display:grid;place-items:center;width:39px;height:39px;flex:none;border-radius:10px;background:#f8ece6;color:#b77258;font-size:14px;font-weight:800}
+.access-person{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.access-person strong{font-size:12px;color:#414a5a}.access-person span{font-size:11px;color:#9da1aa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.access-member select,.access-invite-form select{border:1px solid #e7e6e5;border-radius:8px;background:white;padding:8px;font-size:11px;color:#555d6c}
+.access-role{font-size:11px;color:#a3806a;background:#f8f0eb;border-radius:7px;padding:8px 10px}
+.access-remove{border:0;color:#af7581;background:transparent;padding:8px}
+.access-invite-form{display:grid;gap:11px;margin-top:23px}
+.access-invite-form>label{font-size:12px;font-weight:750;color:#444b58}
+.access-invite-form>div{display:flex;align-items:center;gap:8px}
+.access-invite-form>div>span{color:#a9a7aa}
+.access-invite-form input{flex:1;min-width:0;border:1px solid #e6e6e6;border-radius:9px;padding:11px;font-size:12px}
+.access-invite-form button,.access-link button{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:9px;background:#d17d5e;color:#fff;padding:11px 12px;font-size:11px;font-weight:750}
+.access-invite-form p,.access-helper{font-size:11px;line-height:1.7;color:#8c939f;margin:0}
+.access-link{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px;margin-top:20px;background:#f7f7f7;border-radius:10px}
+.access-link>div{display:flex;align-items:center;gap:11px;color:#b37c67}
+.access-link p{display:flex;flex-direction:column;gap:4px;margin:0}
+.access-link p strong{font-size:12px;color:#4e5564}.access-link p span{font-size:10px;color:#9296a0}
+.access-link button{background:#eae5e0;color:#9e6b53}
+.access-danger{border-top:1px solid #eddddd;padding-top:22px}
+.access-danger .access-label{color:#bf5c57}
+.access-danger>p{font-size:11px;line-height:1.7;color:#8c939e}
+.access-danger>label{display:block;color:#696f7c;font-size:11px;font-weight:750;margin:15px 0 7px}
+.access-danger>input{width:100%;border:1px solid #e6d7d2;border-radius:9px;padding:11px;font-size:12px;color:#363e4a}
+.access-danger>button{margin-top:10px;display:inline-flex;align-items:center;gap:8px;background:#ad4f4c;color:#fff;border:0;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:750}
+.access-danger>button:disabled{background:#f0e7e6;color:#b69d9b}
+.access-footer{display:flex;justify-content:flex-end;border-top:1px solid #f0eeeb;padding-top:15px;margin-top:22px}
+.access-footer button{background:#efefef;color:#566070;border:0;border-radius:9px;padding:10px 17px;font-size:12px}
+.access-error,.access-notice{margin:15px 0;padding:12px;border-radius:9px;font-size:12px;line-height:1.6}
+.access-error{background:#fff0ec;color:#af4b42}.access-notice{display:flex;gap:8px;align-items:center;background:#eff8f1;color:#4b9269}
+@media(max-width:620px){.access-dialog{padding:18px}.access-invite-form>div{flex-wrap:wrap}.access-invite-form input{min-width:calc(100% - 35px)}.access-link{flex-direction:column;align-items:flex-start}.access-member{gap:7px}.access-member select{max-width:105px}}
