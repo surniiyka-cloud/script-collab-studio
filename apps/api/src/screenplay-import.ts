@@ -126,10 +126,17 @@ export function parseScreenplay(input:string):Preview {
 export type Shot={title:string;description:string;shotType:'WIDE'|'MEDIUM'|'CLOSE_UP'|'OTHER';
  durationMs:number;sourceLine:number|null;soundCue:string;musicCue:string};
 export function suggestShots(blocks:Block[]):Shot[]{
- return blocks.filter(b=>b.text.trim()&&b.kind!=='character'&&b.kind!=='heading').slice(0,20).map((b,i)=>({
+ // Preserve the first real scene/chapter heading as an establishing wide shot.
+ // Timing-only headings (00:50–01:32 · Локация) describe metadata, not extra events.
+ // No new action or dialogue is fabricated; descriptions stay tied to source lines.
+ const firstHeading=blocks.find(b=>b.kind==='heading'&&b.text.trim()&&!timeHeading.test(b.text.trim()));
+ const content=blocks.filter(b=>b.text.trim()&&b.kind!=='character'&&
+  b.kind!=='heading'&&b.kind!=='parenthetical');
+ const planned=firstHeading?[firstHeading,...content]:content;
+ return planned.slice(0,20).map((b,i)=>({
   title:'Кадр '+String(i+1).padStart(2,'0'),
   description:(b.dialogueText&&b.speaker?b.speaker+': '+b.dialogueText:b.text.trim()).slice(0,700),
-  shotType:b.kind==='dialogue'?'CLOSE_UP':b.kind==='transition'?'OTHER':'MEDIUM',
+  shotType:b.kind==='heading'?'WIDE':b.kind==='dialogue'?'CLOSE_UP':b.kind==='transition'?'OTHER':'MEDIUM',
   durationMs:b.kind==='dialogue'?5000:3500,sourceLine:b.sourceLine||null,soundCue:'',musicCue:'',
  }));
 }
