@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
  ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Clapperboard, FileImage,
- ImagePlus, Layers, MapPin, Plus, Quote, RefreshCw, Save, Upload, Users, X,
+ ImagePlus, Layers, MapPin, Plus, Quote, RefreshCw, Save, Share2, Upload, Users, X,
 } from 'lucide-react';
 import { api, isUnauthorized } from '../api';
 import type {
@@ -12,6 +12,7 @@ import type {
 } from '../api';
 import { useAuth } from '../auth';
 import { DashboardFrame, UserIndicator } from '../components/Chrome';
+import { ProjectAccessDialog } from '../components/ProjectAccessDialog';
 import './story-wizard.css';
 
 const steps=[
@@ -123,12 +124,14 @@ function StageTitle({index,title,description}:{index:number;title:string;descrip
 }
 export function StoryWizardScreen(){
  const {projectId}=useParams<{projectId:string}>();
- const {token,sessionExpired}=useAuth();
+ const {token,user,sessionExpired}=useAuth();
+ const navigate=useNavigate();
  const [project,setProject]=useState<Project|null>(null);
  const [scripts,setScripts]=useState<Script[]>([]);
  const [scriptId,setScriptId]=useState<string>('');
  const [story,setStory]=useState<WorkflowStory|null>(null);
  const [step,setStep]=useState<Stage>(0);
+ const [accessOpen,setAccessOpen]=useState(false);
  const [source,setSource]=useState('');
  const [importTitle,setImportTitle]=useState('Новый сценарий');
  const [preview,setPreview]=useState<ImportPreview|null>(null);
@@ -260,7 +263,10 @@ export function StoryWizardScreen(){
   <header className="wizard-topbar">
    <Link to="/projects" className="wizard-back-link"><ArrowLeft size={17}/> Все проекты</Link>
    <div className="wizard-logo"><Clapperboard size={18}/><strong>STORY / STUDIO</strong><span>из сценария в визуальную историю</span></div>
-   <UserIndicator/>
+   <div className="wizard-top-actions">
+    {project&&<button type="button" className="wizard-share-button" onClick={()=>setAccessOpen(true)}><Share2 size={16}/> Участники и доступ</button>}
+    <UserIndicator/>
+   </div>
   </header>
   <main className="wizard-app">
    <section className="wizard-head">
@@ -448,6 +454,11 @@ export function StoryWizardScreen(){
     </section>}
    </>}
   </main>
+  {accessOpen&&project&&token&&<ProjectAccessDialog projectId={project.id} title={project.title} token={token}
+    isOwner={user?.id===project.ownerId} onClose={()=>setAccessOpen(false)} onDeleted={cleanup=>{
+      setAccessOpen(false);navigate('/projects',{replace:true,
+       state:cleanup==='pending'?{notice:'Проект удалён. Очистка файлового хранилища требует повторной проверки.'}:undefined});
+    }}/>} 
  </DashboardFrame>;
 }
 function LocationCard({location,token,busy,onSave}:{
