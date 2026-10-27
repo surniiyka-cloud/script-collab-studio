@@ -264,6 +264,8 @@ export function StoryWizardScreen(){
    <Link to="/projects" className="wizard-back-link"><ArrowLeft size={17}/> Все проекты</Link>
    <div className="wizard-logo"><Clapperboard size={18}/><strong>STORY / STUDIO</strong><span>из сценария в визуальную историю</span></div>
    <div className="wizard-top-actions">
+    {project&&<button type="button" className="wizard-refresh-button" title="Обновить изменения других участников"
+      onClick={()=>void refresh()}><RefreshCw size={16}/> Обновить</button>}
     {project&&<button type="button" className="wizard-share-button" onClick={()=>setAccessOpen(true)}><Share2 size={16}/> Участники и доступ</button>}
     <UserIndicator/>
    </div>
