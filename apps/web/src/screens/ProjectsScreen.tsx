@@ -1,20 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Film, FolderOpen, LayoutGrid, Plus, Search, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowRight, Clapperboard, Film, FolderOpen, LayoutGrid, Plus, Search, Settings2, Sparkles } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { api, isUnauthorized } from '../api';
 import type { Project } from '../api';
 import { useAuth } from '../auth';
 import { DashboardFrame, formatDate, FriendlyError, UserIndicator } from '../components/Chrome';
 import { CreateModal, EmptyState } from '../components/Modal';
+import { ProjectAccessDialog } from '../components/ProjectAccessDialog';
 
 const cards = ['project-warm', 'project-peach', 'project-blue', 'project-green'];
 export function ProjectsScreen() {
   const { token, user, sessionExpired } = useAuth();
+  const location=useLocation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [accessProject,setAccessProject]=useState<Project|null>(null);
+  const [notice,setNotice]=useState((location.state as {notice?:string}|null)?.notice??'');
   const [reload, setReload] = useState(0);
   useEffect(() => {
     if (!token) return;
@@ -38,7 +42,7 @@ export function ProjectsScreen() {
   }, [token]);
   return <DashboardFrame>
     <header className="topbar">
-      <span className="breadcrumb">Рабочее пространство <span>/</span> <strong>Мои проекты</strong></span>
+      <Link to="/projects" className="app-home-link"><Clapperboard size={21}/><strong>STORY / STUDIO</strong><span>Мои истории</span></Link>
       <UserIndicator/>
     </header>
     <main className="page-container project-page">
@@ -59,20 +63,26 @@ export function ProjectsScreen() {
           <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск по проектам…"/></label>
       </div>
       {error && <FriendlyError message={error} onRetry={()=>setReload(x=>x+1)}/>}
+      {notice&&<p role="status" className="project-notice">{notice} <button onClick={()=>setNotice('')} aria-label="Скрыть сообщение">×</button></p>}
       {loading ? <div className="project-grid" aria-label="Загрузка проектов">
         {[0,1,2].map(n=><div key={n} className="project-card skeleton" aria-hidden="true"/>)}
       </div> : visible.length ? <div className="project-grid">
-        {visible.map((project,index)=><Link to={'/projects/'+project.id} className="project-card" key={project.id}>
-          <div className={'project-cover '+cards[index%cards.length]}>
-            <div className="cover-details"><span className="cover-index">STORY / {String(index+1).padStart(2,'0')}</span><Film className="cover-clapper" size={58} strokeWidth={1.25}/></div>
-            <span className="cover-symbol">S<span>.</span></span>
-          </div>
-          <div className="project-content">
-            <div className="project-details"><span><span className="tiny-dot"/> ПРОЕКТ</span><span>{formatDate(project.updatedAt)}</span></div>
-            <h3>{project.title}</h3><p>{project.description?.trim() || 'Здесь начинается ваша история.'}</p>
-            <span className="card-arrow" aria-label="Открыть проект"><ArrowRight size={18}/></span>
-          </div>
-        </Link>)}
+        {visible.map((project,index)=><article className="project-card" key={project.id}>
+          <Link to={'/projects/'+project.id} className="project-card-link">
+           <div className={'project-cover '+cards[index%cards.length]}>
+             <div className="cover-details"><span className="cover-index">STORY / {String(index+1).padStart(2,'0')}</span><Film className="cover-clapper" size={58} strokeWidth={1.25}/></div>
+             <span className="cover-symbol">S<span>.</span></span>
+           </div>
+           <div className="project-content">
+             <div className="project-details"><span><span className="tiny-dot"/> {project.ownerId===user?.id?'МОЙ ПРОЕКТ':'ОБЩИЙ ПРОЕКТ'}</span><span>{formatDate(project.updatedAt)}</span></div>
+             <h3>{project.title}</h3><p>{project.description?.trim() || 'Здесь начинается ваша история.'}</p>
+             <span className="card-arrow" aria-label="Открыть проект"><ArrowRight size={18}/></span>
+           </div>
+          </Link>
+          <button className="project-access-trigger" onClick={()=>setAccessProject(project)}>
+           <Settings2 size={15}/> {project.ownerId===user?.id?'Участники / удалить':'Участники'}
+          </button>
+        </article>)}
         <button className="add-project-card" onClick={()=>setShowCreate(true)}>
           <span className="add-project-plus"><Plus size={26}/></span><strong>Новая история</strong><span>Создать ещё один проект</span>
         </button>
@@ -82,6 +92,13 @@ export function ProjectsScreen() {
         action={!query && <button className="button button-primary" onClick={()=>setShowCreate(true)}><Plus size={18}/> Создать проект</button>}/>}
       <footer className="page-footer"><span>Script Collab Studio</span><span>Ваши истории принадлежат вам{user?.displayName ? ', ' + user.displayName : ''}.</span></footer>
     </main>
+    {accessProject&&token&&<ProjectAccessDialog projectId={accessProject.id} title={accessProject.title}
+      token={token} isOwner={accessProject.ownerId===user?.id} onClose={()=>setAccessProject(null)}
+      onDeleted={storageCleanup=>{
+       setProjects(old=>old.filter(item=>item.id!==accessProject.id));
+       setAccessProject(null);
+       setNotice(storageCleanup==='completed'?'Проект удалён.':'Проект удалён из базы. Очистка загруженных файлов требует повторной проверки.');
+      }}/>}
     {showCreate && <CreateModal title="Новый проект" label="Название проекта" placeholder="Например, Мой первый фильм"
       descriptionLabel="Короткое описание" onCreate={create} onClose={()=>setShowCreate(false)}/>}
   </DashboardFrame>;
