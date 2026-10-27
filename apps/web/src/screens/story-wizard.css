@@ -185,3 +185,8 @@
 .wizard-share-button:hover{background:#f1e4dc}
 @media(max-width:700px){.wizard-topbar{flex-wrap:wrap;padding:11px 14px}.wizard-top-actions{gap:10px}
 .wizard-share-button{padding:9px 11px;font-size:11px}.header-user-name{display:none}}
+
+.wizard-refresh-button{display:inline-flex;align-items:center;gap:8px;border:1px solid #e7e7e7;
+ color:#717987;background:#fff;border-radius:10px;padding:10px 13px;font-size:12px;font-weight:750}
+.wizard-refresh-button:hover{background:#f6f3f0}
+@media(max-width:600px){.wizard-refresh-button{font-size:0;gap:0}.wizard-refresh-button svg{width:17px;height:17px}}
