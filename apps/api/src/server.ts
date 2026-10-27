@@ -11,6 +11,9 @@ import { registerProductionRoutes } from './production-routes.js';
 import { registerMediaRoutes } from './production-media.js';
 import { registerProductionRenderRoutes } from './production-render.js';
 import { registerImageGenerationRoutes } from './production-image-ai.js';
+import { registerStoryWorkflowRoutes } from './story-workflow.js';
+import { registerProjectTeamRoutes } from './project-team.js';
+import { purgeProjectStorage } from './production-media.js';
 
 const id = z.uuid();
 const params = z.object({ projectId: id });
@@ -120,8 +123,12 @@ export function makeApp() {
   app.delete('/api/v1/projects/:projectId', async req => {
     const projectId = parseParams(req, 'projectId');
     if ((await role(req, projectId)) !== 'OWNER') throw new HttpError(403, 'FORBIDDEN', 'Owner role required');
+    // Project DB rows cascade; separately remove private media objects from S3.
+    const assets=await db.mediaAsset.findMany({where:{projectId},select:{objectKey:true}});
     await db.project.delete({ where: { id: projectId } });
-    return asData({ deleted: true });
+    const storageCleanup=await purgeProjectStorage(assets.map(asset=>asset.objectKey));
+    if(storageCleanup==='pending')req.log.warn({projectId},'Project deleted, media storage cleanup pending');
+    return asData({ deleted: true, storageCleanup });
   });
   app.get('/api/v1/projects/:projectId/scripts', async req => {
     const projectId = parseParams(req, 'projectId');
@@ -276,5 +283,7 @@ export function makeApp() {
   registerMediaRoutes(app,role,actor);
   registerProductionRenderRoutes(app,role);
   registerImageGenerationRoutes(app,role);
+  registerStoryWorkflowRoutes(app,role);
+  registerProjectTeamRoutes(app,role);
   return app;
 }

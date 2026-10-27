@@ -22,6 +22,10 @@ function stateFromBlocks(blocks:Block[]):Uint8Array<ArrayBuffer>{
   for(const block of blocks){
    const el=new Y.XmlElement('screenplayBlock');
    el.setAttribute('kind',block.kind);
+   el.setAttribute('sourceLine',String(block.sourceLine));
+   if(block.speaker)el.setAttribute('speaker',block.speaker);
+   if(block.dialogueText)el.setAttribute('dialogueText',block.dialogueText);
+   if(block.delivery)el.setAttribute('delivery',block.delivery);
    const text=new Y.XmlText();
    if(block.text)text.insert(0,block.text);
    el.insert(0,[text]);fragment.insert(fragment.length,[el]);
@@ -34,7 +38,7 @@ function stateFromBlocks(blocks:Block[]):Uint8Array<ArrayBuffer>{
  doc.destroy();
  return update;
 }
-function readBlocks(state:Uint8Array):Block[]{
+export function readBlocks(state:Uint8Array):Block[]{
  const doc=new Y.Doc();
  try{
   Y.applyUpdate(doc,state);
@@ -44,7 +48,13 @@ function readBlocks(state:Uint8Array):Block[]{
    const raw=item.toArray().map(t=>t instanceof Y.XmlText?t.toString():'').join('');
    const kind=String(item.getAttribute('kind')??'');
    const allowed=['heading','action','character','dialogue','parenthetical','transition'];
-   return [{kind:(allowed.includes(kind)?kind:'action') as Block['kind'],text:raw,sourceLine:index+1}];
+   const originalLine=Number(item.getAttribute('sourceLine'));
+   return [{kind:(allowed.includes(kind)?kind:'action') as Block['kind'],text:raw,
+    sourceLine:Number.isSafeInteger(originalLine)&&originalLine>0?originalLine:index+1,
+    ...(item.getAttribute('speaker')?{speaker:String(item.getAttribute('speaker'))}:{}),
+    ...(item.getAttribute('dialogueText')?{dialogueText:String(item.getAttribute('dialogueText'))}:{}),
+    ...(item.getAttribute('delivery')?{delivery:String(item.getAttribute('delivery'))}:{}),
+   }];
   });
  }finally{doc.destroy();}
 }
@@ -83,14 +93,44 @@ export function registerProductionRoutes(
     data:{title:input.title,projectId,acts:{create:{title:'Акт 1',sortKey:'000000000001'}}},
     include:{acts:true},
    });
+   // Keep the exact complete author text including title page and preface.
+   // This is a separate source snapshot; screenplay scenes stay clean.
+   const sourceDoc=new Y.Doc();
+   const sourceFragment=sourceDoc.getXmlFragment('source');
+   const raw=new Y.XmlText();
+   raw.insert(0,input.text);
+   sourceFragment.insert(0,[raw]);
+   const bytes=Y.encodeStateAsUpdate(sourceDoc);
+   const sourceBytes=new Uint8Array(new ArrayBuffer(bytes.byteLength));
+   sourceBytes.set(bytes);
+   sourceDoc.destroy();
+   await tx.yDocState.create({data:{documentName:'script:'+script.id+':source',
+    projectId,update:sourceBytes}});
    const actId=script.acts[0].id;
+   const locations=new Map<string,string>();
    const scenes=[];
    for(let i=0;i<preview.scenes.length;i++){
     const sceneInput=preview.scenes[i];
     const scene=await tx.scene.create({data:{
      scriptId:script.id,actId,title:sceneInput.title,sortKey:String(i+1).padStart(12,'0'),
     }});
-    await tx.node.create({data:{projectId,sceneId:scene.id,title:scene.title,kind:'SCENE'}});
+    const place=sceneInput.locationHint?.trim().slice(0,200);
+    let locationId:string|undefined;
+    if(place){
+     const normalized=place.toLocaleLowerCase('ru-RU');
+     locationId=locations.get(normalized);
+     if(!locationId){
+      const found=await tx.node.findFirst({where:{projectId,kind:'LOCATION',title:{equals:place,mode:'insensitive'}}});
+      const authorDescription=sceneInput.blocks.filter(block=>block.kind==='action'&&block.text.trim())
+       .map(block=>block.text.trim()).join(' ').slice(0,1000);
+      locationId=found?.id??(await tx.node.create({data:{projectId,kind:'LOCATION',title:place,
+       description:authorDescription||undefined}})).id;
+      locations.set(normalized,locationId);
+     }
+    }
+    await tx.node.create({data:{projectId,sceneId:scene.id,title:scene.title,kind:'SCENE',
+     metadata:{workflow:{locationId:locationId??null,locationHint:place??null,
+      timecode:sceneInput.timecode,timeOfDay:sceneInput.timeOfDay}}}});
     await tx.yDocState.create({data:{documentName:'scene:'+scene.id,projectId,update:stateFromBlocks(sceneInput.blocks)}});
     scenes.push({id:scene.id,title:scene.title});
    }

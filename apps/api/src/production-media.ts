@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { S3Client, PutObjectCommand, GetObjectCommand, HeadBucketCommand, CreateBucketCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadBucketCommand, CreateBucketCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { db } from './db.js';
 import { HttpError, required } from './errors.js';
 import { env } from './env.js';
@@ -33,6 +33,20 @@ function validFile(bytes:Buffer,mime:string){
  if(mime==='audio/mpeg')return bytes.length>8&&(bytes.toString('ascii',0,3)==='ID3'||(bytes[0]===255&&(bytes[1]&224)===224));
  if(mime==='audio/wav'||mime==='audio/x-wav')return bytes.length>12&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WAVE';
  return false;
+}
+/** Best-effort cleanup after project database deletion. Report failures explicitly. */
+export async function purgeProjectStorage(keys:string[]):Promise<'completed'|'pending'> {
+ if(!keys.length)return 'completed';
+ if(!env.S3_ENDPOINT||!env.S3_ACCESS_KEY||!env.S3_SECRET_KEY)return 'pending';
+ try{
+  for(let start=0;start<keys.length;start+=1000){
+   const chunk=keys.slice(start,start+1000);
+   const result=await store().send(new DeleteObjectsCommand({Bucket:env.S3_BUCKET,
+    Delete:{Objects:chunk.map(Key=>({Key})),Quiet:true}}));
+   if(result.Errors?.length)return 'pending';
+  }
+  return 'completed';
+ }catch{return 'pending';}
 }
 /** Read an authenticated project's approved media from private S3/MinIO. */
 export async function getStoredMediaBytes(key:string):Promise<Uint8Array>{
@@ -67,13 +81,13 @@ export function registerMediaRoutes(
   const {projectId,nodeId}=z.object({projectId:uuid,nodeId:uuid}).parse(req.params);
   await access(req,projectId,true);
   const node=required(await db.node.findUnique({where:{id:nodeId}}));
-  if(node.projectId!==projectId||!['CHARACTER','SHOT'].includes(node.kind))
+  if(node.projectId!==projectId||!['CHARACTER','SHOT','LOCATION'].includes(node.kind))
    throw new HttpError(404,'NOT_FOUND','Character or shot node not found');
   const mime=String(req.headers['content-type']||'').split(';',1)[0].toLowerCase();
   const bytes=req.body;
   if(!Buffer.isBuffer(bytes)||!validFile(bytes,mime))throw new HttpError(400,'UNSUPPORTED_MEDIA','Только проверенные JPEG, PNG, WebP, MP3 или WAV.');
   if(bytes.length>8*1024*1024)throw new HttpError(413,'MEDIA_TOO_LARGE','Максимальный размер файла — 8 МБ');
-  if(node.kind==='CHARACTER'&&!mime.startsWith('image/'))throw new HttpError(400,'IMAGE_REQUIRED','Референс персонажа должен быть изображением');
+  if(['CHARACTER','LOCATION'].includes(node.kind)&&!mime.startsWith('image/'))throw new HttpError(400,'IMAGE_REQUIRED','Референс персонажа должен быть изображением');
   let filename='reference';
   try{filename=decodeURIComponent(String(req.headers['x-file-name']||'reference')).replace(/[\\/]/g,'_').slice(0,160);}
   catch{throw new HttpError(400,'INVALID_FILENAME','Некорректное имя файла.');}

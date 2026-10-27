@@ -7,6 +7,8 @@ export type Project = {
   id: string; title: string; description: string | null;
   ownerId: string; createdAt: string; updatedAt: string;
 };
+export type ProjectRole = 'OWNER'|'EDITOR'|'VIEWER';
+export type ProjectMember = {userId:string;role:ProjectRole;joinedAt:string;displayName:string;email:string};
 export type Act = { id: string; title: string; scriptId: string; sortKey: string };
 export type Script = {
   id: string; projectId: string; title: string; createdAt: string;
@@ -20,10 +22,10 @@ export type GraphNode = { id: string; title: string; kind: string; sceneId: stri
 export type GraphEdge = { id: string; sourceNodeId: string; targetNodeId: string; kind: string };
 export type Graph = { nodes: GraphNode[]; edges: GraphEdge[] };
 
-export type ImportBlock = { kind: 'heading'|'action'|'character'|'dialogue'|'parenthetical'|'transition'; text:string; sourceLine:number };
+export type ImportBlock = { kind: 'heading'|'action'|'character'|'dialogue'|'parenthetical'|'transition'; text:string; sourceLine:number; speaker?:string;dialogueText?:string;delivery?:string };
 export type ImportPreview = {
- digest:string; length:number; characters:string[]; warnings:string[];
- scenes:Array<{title:string;sourceLineStart:number;blocks:ImportBlock[]}>;
+ digest:string; length:number; characters:string[]; warnings:string[];frontMatter:ImportBlock[];
+ scenes:Array<{title:string;sourceLineStart:number;blocks:ImportBlock[];timecode:string|null;locationHint:string|null;timeOfDay:string|null}>;
 };
 export type ImportCommit = {scriptId:string;scenes:Array<{id:string;title:string}>;characters:string[]};
 export type ShotDraft = {
@@ -44,6 +46,18 @@ export type FilmTimeline = {script:{id:string;title:string};scenes:Array<{
  id:string;title:string;shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;metadata:unknown;media?:Array<{id:string;kind:string;mimeType:string;filename:string}>}>;
 }>};
 
+export type WorkflowMedia = {id:string;kind:string;filename:string;mimeType:string;sizeBytes:string};
+export type WorkflowSubject = {id:string;title:string;description:string|null;media:WorkflowMedia[]};
+export type WorkflowScene = {
+ id:string;index:number;title:string;synopsis:string|null;locationId:string|null;
+ suggestedLocation:string|null;timecode:string|null;timeOfDay:string|null;blocks:ImportBlock[];actionDescription:string;
+ characters:string[];dialogues:Array<{speaker:string;text:string;sourceLine:number;delivery?:string}>;
+ shots:Array<{id:string;title:string;description:string|null;shotType:string|null;durationMs:number;media:WorkflowMedia[]}>;
+};
+export type WorkflowStory = {
+ script:{id:string;title:string};scenes:WorkflowScene[];
+ characters:WorkflowSubject[];locations:WorkflowSubject[];
+};
 export type Session = { user: User; accessToken: string };
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
@@ -92,6 +106,16 @@ export const api = {
   projects: (token: string, signal?: AbortSignal) => request<Project[]>('/projects', 'GET', token, undefined, signal),
   createProject: (token: string, title: string, description: string) =>
     request<Project>('/projects', 'POST', token, { title, description }),
+  deleteProject: (token:string,projectId:string) =>
+    request<{deleted:boolean;storageCleanup:'completed'|'pending'}>('/projects/'+encodeURIComponent(projectId),'DELETE',token),
+  projectMembers: (token:string,projectId:string) =>
+    request<ProjectMember[]>('/projects/'+encodeURIComponent(projectId)+'/members','GET',token),
+  addProjectMember: (token:string,projectId:string,email:string,role:Exclude<ProjectRole,'OWNER'>) =>
+    request<ProjectMember>('/projects/'+encodeURIComponent(projectId)+'/members','POST',token,{email,role}),
+  updateProjectMember: (token:string,projectId:string,userId:string,role:Exclude<ProjectRole,'OWNER'>) =>
+    request<ProjectMember>('/projects/'+encodeURIComponent(projectId)+'/members/'+encodeURIComponent(userId),'PATCH',token,{role}),
+  removeProjectMember: (token:string,projectId:string,userId:string) =>
+    request<{removed:boolean}>('/projects/'+encodeURIComponent(projectId)+'/members/'+encodeURIComponent(userId),'DELETE',token),
   project: (token: string, id: string, signal?: AbortSignal) =>
     request<Project>('/projects/' + encodeURIComponent(id), 'GET', token, undefined, signal),
   scripts: (token: string, projectId: string, signal?: AbortSignal) =>
@@ -113,6 +137,16 @@ export const api = {
     request<ImportPreview>('/projects/'+encodeURIComponent(projectId)+'/production/import/preview','POST',token,{text}),
   commitImport: (token:string, projectId:string, input:{title:string;text:string;digest:string}) =>
     request<ImportCommit>('/projects/'+encodeURIComponent(projectId)+'/production/import/commit','POST',token,input),
+  workflowStory: (token:string,projectId:string,scriptId:string) =>
+    request<WorkflowStory>('/projects/'+encodeURIComponent(projectId)+'/workflow/story?scriptId='+encodeURIComponent(scriptId),'GET',token),
+  createLocation: (token:string,projectId:string,title:string,description?:string) =>
+    request<WorkflowSubject>('/projects/'+encodeURIComponent(projectId)+'/workflow/locations','POST',token,{title,description}),
+  reorderShots: (token:string,sceneId:string,shotIds:string[]) =>
+    request<{sceneId:string;shotIds:string[]}>('/scenes/'+encodeURIComponent(sceneId)+'/workflow/shots/order','PUT',token,{shotIds}),
+  assignSceneLocation: (token:string,sceneId:string,locationId:string|null) =>
+    request<{sceneId:string;locationId:string|null}>('/scenes/'+encodeURIComponent(sceneId)+'/workflow/location','PUT',token,{locationId}),
+  updateNode: (token:string,nodeId:string,changes:{title?:string;description?:string|null;durationMs?:number;shotType?:string}) =>
+    request<ProductionNode>('/nodes/'+encodeURIComponent(nodeId),'PATCH',token,changes),
   characters: (token:string,projectId:string) =>
     request<ProductionNode[]>('/projects/'+encodeURIComponent(projectId)+'/production/characters','GET',token),
   createCharacter: (token:string,projectId:string,name:string) =>

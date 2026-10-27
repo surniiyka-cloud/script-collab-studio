@@ -4,9 +4,9 @@ import { Clapperboard } from 'lucide-react';
 import { useAuth } from './auth';
 import { AuthScreen } from './screens/AuthScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
-const StudioScreen = lazy(async () => {
-  const module = await import('./screens/StudioScreen');
-  return { default: module.StudioScreen };
+const StoryWizardScreen = lazy(async () => {
+  const module = await import('./screens/StoryWizardScreen');
+  return { default: module.StoryWizardScreen };
 });
 
 function Loading() {
@@ -34,7 +34,7 @@ export function App() {
     </Route>
     <Route element={<Protected />}>
       <Route path="/projects" element={<ProjectsScreen />} />
-      <Route path="/projects/:projectId" element={<Suspense fallback={<Loading />}><StudioScreen /></Suspense>} />
+      <Route path="/projects/:projectId" element={<Suspense fallback={<Loading />}><StoryWizardScreen /></Suspense>} />
     </Route>
     <Route path="*" element={<Navigate to="/projects" replace />} />
   </Routes>;
