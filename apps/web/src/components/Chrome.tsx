@@ -1,5 +1,5 @@
-import { Clapperboard, FolderKanban, LogOut, Sparkles } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Clapperboard, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
 import type { ReactNode } from 'react';
 
@@ -12,25 +12,9 @@ export function Brand({ compact = false }: { compact?: boolean }) {
 function Initials({ name }: { name: string }) {
   return <span className="avatar">{name.trim().slice(0, 1).toLocaleUpperCase('ru-RU') || 'А'}</span>;
 }
+/** One content-first app frame: no redundant or decorative left rail. */
 export function DashboardFrame({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
-  const location = useLocation();
-  return <div className="application">
-    <aside className="global-rail" aria-label="Навигация приложения">
-      <Brand compact/>
-      <div className="rail-items">
-        <Link className={'rail-item ' + (location.pathname.startsWith('/projects') ? 'active' : '')} to="/projects" title="Проекты" aria-label="Проекты">
-          <FolderKanban size={21}/>
-        </Link>
-      </div>
-      <div className="rail-bottom">
-        <span className="rail-item rail-static" aria-hidden="true"><Sparkles size={20}/></span>
-        <button className="rail-item" onClick={logout} title="Выйти" aria-label="Выйти из аккаунта"><LogOut size={20}/></button>
-        <div title={user?.displayName ?? ''}>{user && <Initials name={user.displayName}/>}</div>
-      </div>
-    </aside>
-    <div className="application-body">{children}</div>
-  </div>;
+  return <div className="application"><div className="application-body">{children}</div></div>;
 }
 export function UserIndicator() {
   const { user, logout } = useAuth();
