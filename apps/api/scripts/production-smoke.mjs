@@ -196,7 +196,16 @@ try{
 
  console.log('PASS: script import, Yjs, shot approval, timeline, named character and private S3 files, chapter parsing and lossless original.');
 } finally{
- if(projectId){try{await db.project.delete({where:{id:projectId}});}catch(e){console.warn('Temporary project cleanup failed',String(e));}}
+ if(projectId){
+  try{
+   const result=await call('/projects/'+projectId,'DELETE');
+   if(result.storageCleanup==='pending')console.warn('Temporary media cleanup requires checking S3.');
+  }catch(error){
+   console.warn('API cleanup unavailable, falling back to database cleanup',String(error));
+   try{await db.project.delete({where:{id:projectId}});}
+   catch(e){console.warn('Temporary project cleanup failed',String(e));}
+  }
+ }
  if(collaboratorId){try{await db.user.delete({where:{id:collaboratorId}});}catch(e){console.warn('Collaborator cleanup failed',String(e));}}
  if(userId){try{await db.user.delete({where:{id:userId}});}catch(e){console.warn('Temporary user cleanup failed',String(e));}}
  await db.$disconnect();
