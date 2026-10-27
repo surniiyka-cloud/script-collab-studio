@@ -80,3 +80,30 @@ test('inline cues cannot turn narrative colon lines into false speakers',()=>{
   speaker:'ДОБРЫНЯ',dialogueText:'Давай поедем.',
  });
 });
+
+
+test('a scene containing only a heading and one spoken line gets two grounded storyboard shots',()=>{
+ const source='ИНТ. ОФИС — УТРО\n\nСЕРГЕЙ\nДоброе утро!\n\nНАТ. ОЗЕРО — ДЕНЬ\nВода спокойная.';
+ const parsed=parseScreenplay(source);
+ const shots=suggestShots(parsed.scenes[0].blocks);
+ assert.equal(shots.length,2);
+ assert.deepEqual(shots.map(shot=>shot.shotType),['WIDE','CLOSE_UP']);
+ assert.deepEqual(shots.map(shot=>shot.description),['ИНТ. ОФИС — УТРО','Доброе утро!']);
+ assert.ok(shots.every(shot=>shot.sourceLine!==null));
+});
+test('film chapter timecode is metadata rather than a redundant storyboard frame',()=>{
+ const parsed=parseScreenplay([
+  'ПРОЛОГ. РЫБАЛКА',
+  '00:00–00:50 · Тихий берег. Раннее утро',
+  'Туман держится над водой.',
+  'ВАДИМ ГЕОРГИЕВИЧ: СА, доброе утро.',
+  'СА: ВГ, я на рыбалке.',
+ ].join('\n'));
+ const shots=suggestShots(parsed.scenes[0].blocks);
+ assert.equal(shots.length,4);
+ assert.deepEqual(shots.map(shot=>shot.shotType),['WIDE','MEDIUM','CLOSE_UP','CLOSE_UP']);
+ assert.equal(shots[0].description,'ПРОЛОГ. РЫБАЛКА');
+ assert.ok(!shots.some(shot=>shot.description.startsWith('00:00–00:50')));
+ assert.equal(shots[2].description,'ВАДИМ ГЕОРГИЕВИЧ: СА, доброе утро.');
+ assert.equal(shots[3].description,'СА: ВГ, я на рыбалке.');
+});
