@@ -178,3 +178,10 @@
 .wizard-scene-details-content .wizard-line-dialogue{border-left:2px solid #d99272;padding-left:10px;display:flex;flex-direction:column;gap:2px}
 .wizard-scene-details-content .wizard-line-dialogue strong{font-size:11px;color:#bb7454}
 .wizard-scene-details-content .wizard-line-transition{color:#b27f61;font-style:italic}
+
+.wizard-top-actions{display:flex;align-items:center;gap:18px}
+.wizard-share-button{display:inline-flex;align-items:center;gap:9px;border:1px solid #e7ded6;
+ color:#a7674f;background:#faf3ee;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:780}
+.wizard-share-button:hover{background:#f1e4dc}
+@media(max-width:700px){.wizard-topbar{flex-wrap:wrap;padding:11px 14px}.wizard-top-actions{gap:10px}
+.wizard-share-button{padding:9px 11px;font-size:11px}.header-user-name{display:none}}
