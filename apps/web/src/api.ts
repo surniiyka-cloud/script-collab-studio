@@ -7,6 +7,8 @@ export type Project = {
   id: string; title: string; description: string | null;
   ownerId: string; createdAt: string; updatedAt: string;
 };
+export type ProjectRole = 'OWNER'|'EDITOR'|'VIEWER';
+export type ProjectMember = {userId:string;role:ProjectRole;joinedAt:string;displayName:string;email:string};
 export type Act = { id: string; title: string; scriptId: string; sortKey: string };
 export type Script = {
   id: string; projectId: string; title: string; createdAt: string;
@@ -104,6 +106,16 @@ export const api = {
   projects: (token: string, signal?: AbortSignal) => request<Project[]>('/projects', 'GET', token, undefined, signal),
   createProject: (token: string, title: string, description: string) =>
     request<Project>('/projects', 'POST', token, { title, description }),
+  deleteProject: (token:string,projectId:string) =>
+    request<{deleted:boolean;storageCleanup:'completed'|'pending'}>('/projects/'+encodeURIComponent(projectId),'DELETE',token),
+  projectMembers: (token:string,projectId:string) =>
+    request<ProjectMember[]>('/projects/'+encodeURIComponent(projectId)+'/members','GET',token),
+  addProjectMember: (token:string,projectId:string,email:string,role:Exclude<ProjectRole,'OWNER'>) =>
+    request<ProjectMember>('/projects/'+encodeURIComponent(projectId)+'/members','POST',token,{email,role}),
+  updateProjectMember: (token:string,projectId:string,userId:string,role:Exclude<ProjectRole,'OWNER'>) =>
+    request<ProjectMember>('/projects/'+encodeURIComponent(projectId)+'/members/'+encodeURIComponent(userId),'PATCH',token,{role}),
+  removeProjectMember: (token:string,projectId:string,userId:string) =>
+    request<{removed:boolean}>('/projects/'+encodeURIComponent(projectId)+'/members/'+encodeURIComponent(userId),'DELETE',token),
   project: (token: string, id: string, signal?: AbortSignal) =>
     request<Project>('/projects/' + encodeURIComponent(id), 'GET', token, undefined, signal),
   scripts: (token: string, projectId: string, signal?: AbortSignal) =>
