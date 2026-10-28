@@ -16,7 +16,16 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-router-dom": "7.9.5",
-    "lucide-react": "0.468.0"
+    "lucide-react": "0.468.0",
+    "@hocuspocus/provider": "4.7.1",
+    "@hocuspocus/provider-react": "4.7.1",
+    "@tiptap/core": "3.31.4",
+    "@tiptap/react": "3.31.4",
+    "@tiptap/starter-kit": "3.31.4",
+    "@tiptap/extension-collaboration": "3.31.4",
+    "@tiptap/extension-collaboration-caret": "3.31.4",
+    "@tiptap/extension-placeholder": "3.31.4",
+    "yjs": "13.6.27"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "5.0.4",

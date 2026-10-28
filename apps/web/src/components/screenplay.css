@@ -1,0 +1,43 @@
+/* Dedicated screenplay typography. Editor text lives ONLY in Yjs XML fragment. */
+.collab-editor { margin-top: 29px; border: 1px solid #e7e8e9; border-radius: 13px; overflow: hidden; background: #fff; }
+.collab-topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid #edece9; }
+.collab-heading { display: flex; gap: 8px; align-items: center; color: #5d6473; font-size: 12px; }
+.collab-heading strong { color: #303847; }
+.collab-heading svg { color: #c27556; }
+.collab-subtitle { color: #aaaab3; font-size: 11px; border-left: 1px solid #e6e5e3; padding-left: 9px; }
+.collab-status { font-size: 11px; color: #769d89; display: flex; gap: 7px; align-items: center; text-align: right; }
+.collab-toolbar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; background: #fafaf9; padding: 10px 14px; border-bottom: 1px solid #ededeb; }
+.block-select { position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 0 7px; color: #b27355; }
+.block-select select { max-width: 190px; font-size: 12px; background: transparent; border: 0; color: #505766; outline: none; padding: 8px 6px; font-weight: 650; }
+.block-select select:disabled { color: #a9aab0; }
+.format-button { display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; border-radius: 7px; width: 31px; height: 31px; color: #7d8391; }
+.format-button:disabled { opacity: .35; }
+.format-button.active, .format-button:hover:not(:disabled) { background: #f6e8df; color: #bc6e4d; }
+.toolbar-divider { height: 21px; width: 1px; background: #e2e1df; margin: 0 7px; }
+.collab-document { margin: 0; padding: 30px clamp(17px,3.2vw,48px) 42px; min-height: 320px; background: linear-gradient(#fff,#fffdfb); }
+.screenplay-prosemirror { min-height: 270px; outline: none; color: #2c303d; font-size: 14px; line-height: 1.8; font-family: "Courier New", Courier, monospace; }
+.screenplay-prosemirror p { margin: 0 0 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.screenplay-prosemirror p[data-kind="heading"] { font-weight: 800; text-transform: uppercase; letter-spacing: .2px; padding: 2px 0 7px; }
+.screenplay-prosemirror p[data-kind="action"] { margin-bottom: 17px; }
+.screenplay-prosemirror p[data-kind="character"] { text-transform: uppercase; font-weight: 800; margin: 19px 0 3px 32%; }
+.screenplay-prosemirror p[data-kind="dialogue"] { margin: 0 18% 14px 20%; }
+.screenplay-prosemirror p[data-kind="parenthetical"] { font-style: italic; color: #676d78; margin: 0 20% 4px 28%; }
+.screenplay-prosemirror p[data-kind="transition"] { text-transform: uppercase; text-align: right; margin: 25px 0 13px; }
+.screenplay-prosemirror p.is-empty:first-child::before { content: attr(data-placeholder); pointer-events: none; float: left; height: 0; color: #bec0c8; font-style: italic; }
+.collab-readonly { font-size: 11px; color: #aba1a0; display: inline-block; margin-top: 22px; }
+.collab-document.is-readonly { background: #fbfaf8; }
+.collab-footer { display: flex; gap: 12px; justify-content: space-between; padding: 13px 18px; border-top: 1px solid #eeeae7; background: #fcfbfa; font-size: 10px; color: #a4a6af; }
+.collab-participants { display: inline-flex; gap: 7px; align-items: center; color: #a98b7a; white-space: nowrap; }
+.collab-error { color: #a34536; padding: 20px; font-size: 12px; }
+.collaboration-carets__caret { position: relative; margin-left: -1px; margin-right: -1px; border-left: 1px solid currentColor; border-right: 1px solid currentColor; word-break: normal; pointer-events: none; }
+.collaboration-carets__label { position: absolute; top: -1.45em; left: -1px; font-family: sans-serif; font-size: 11px; color: #fff; border-radius: 4px 4px 4px 0; padding: 3px 6px; white-space: nowrap; background: currentColor; }
+.collaboration-carets__selection { background-color: currentColor; opacity: .25; pointer-events: none; }
+@media (max-width:760px) {
+ .collab-subtitle, .collab-hint { display:none; }
+ .collab-document { padding:24px 14px 35px; }
+ .screenplay-prosemirror { font-size: 12px; }
+ .screenplay-prosemirror p[data-kind="character"] { margin-left: 22%; }
+ .screenplay-prosemirror p[data-kind="dialogue"] { margin-left:10%; margin-right:10%; }
+}
+
+.editor-explainer { font-size:11px; color:#aaa6a3; line-height:1.5; margin:14px 0 0; }

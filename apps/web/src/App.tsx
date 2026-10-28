@@ -1,9 +1,13 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Clapperboard } from 'lucide-react';
 import { useAuth } from './auth';
 import { AuthScreen } from './screens/AuthScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
-import { StudioScreen } from './screens/StudioScreen';
+const StudioScreen = lazy(async () => {
+  const module = await import('./screens/StudioScreen');
+  return { default: module.StudioScreen };
+});
 
 function Loading() {
   return <main className="boot-screen" role="status">
@@ -30,7 +34,7 @@ export function App() {
     </Route>
     <Route element={<Protected />}>
       <Route path="/projects" element={<ProjectsScreen />} />
-      <Route path="/projects/:projectId" element={<StudioScreen />} />
+      <Route path="/projects/:projectId" element={<Suspense fallback={<Loading />}><StudioScreen /></Suspense>} />
     </Route>
     <Route path="*" element={<Navigate to="/projects" replace />} />
   </Routes>;
